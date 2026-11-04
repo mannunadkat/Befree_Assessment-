@@ -662,7 +662,16 @@ def extract_transactions_from_page(
 
     # 2. Geometry / OCR path
     if is_scanned:
-        words, _ = extract_words_from_scanned_page(pdf_path, page_number, dpi=dpi, password=password)
+        words = []
+        from core.ocr_extractor import is_tesseract_available
+        if is_tesseract_available():
+            try:
+                words, _ = extract_words_from_scanned_page(pdf_path, page_number, dpi=dpi, password=password)
+            except Exception:
+                words = []
+        if not words:
+            # Fall back to text extraction (works for hybrid/embedded text layers without Tesseract)
+            words = extract_words_from_page(pdf_path, page_number, password=password)
         y_tol = 5.0
         # Strip OCR noise characters that act as column separators (e.g. pipe from table borders)
         _NOISE_CHARS = {'|', '│', '┃', '—', '―', ''}

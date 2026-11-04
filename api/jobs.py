@@ -338,13 +338,15 @@ async def process_job_pipeline(job_id: str):
             # If document is scanned or text is empty, extract OCR text from page 1 and the last page
             if not full_text.strip() or f_status.detected_type in ["scanned", "hybrid"]:
                 try:
-                    from core.ocr_extractor import extract_words_from_scanned_page
-                    p1_words, _ = extract_words_from_scanned_page(f_path, 1, dpi=settings.ocr_dpi, password=pwd)
-                    ocr_blobs = [" ".join(w["text"] for w in p1_words)]
-                    if f_status.pages > 1:
-                        pn_words, _ = extract_words_from_scanned_page(f_path, f_status.pages, dpi=settings.ocr_dpi, password=pwd)
-                        ocr_blobs.append(" ".join(w["text"] for w in pn_words))
-                    full_text = (full_text + "\n" + "\n".join(ocr_blobs)).strip()
+                    from core.ocr_extractor import is_tesseract_available
+                    if is_tesseract_available():
+                        from core.ocr_extractor import extract_words_from_scanned_page
+                        p1_words, _ = extract_words_from_scanned_page(f_path, 1, dpi=settings.ocr_dpi, password=pwd)
+                        ocr_blobs = [" ".join(w["text"] for w in p1_words)]
+                        if f_status.pages > 1:
+                            pn_words, _ = extract_words_from_scanned_page(f_path, f_status.pages, dpi=settings.ocr_dpi, password=pwd)
+                            ocr_blobs.append(" ".join(w["text"] for w in pn_words))
+                        full_text = (full_text + "\n" + "\n".join(ocr_blobs)).strip()
                 except Exception as e:
                     print(f"Warning: OCR header text extraction failed: {e}")
 
@@ -455,12 +457,17 @@ async def process_job_pipeline(job_id: str):
         )
         job["result"] = result
 
+        completion_msg = f"Successfully processed {len(validated_txns)} transactions!"
+        from core.ocr_extractor import is_tesseract_available
+        if not is_tesseract_available() and overall_doc_type in ["scanned", "hybrid"]:
+            completion_msg = f"Processed {len(validated_txns)} transactions from text pages (Note: Scanned pages require local Tesseract OCR engine)."
+
         await emit_job_event(job_id, {
             "status": "completed",
             "stage": "completed",
             "progress": 100.0,
             "transactions_found": len(validated_txns),
-            "message": f"Successfully processed {len(validated_txns)} transactions!"
+            "message": completion_msg
         })
 
     except Exception as e:

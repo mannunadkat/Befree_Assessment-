@@ -166,13 +166,7 @@ def extract_words_from_scanned_page(
     Coordinates are scaled back to 72 DPI PDF point coordinates for consistency.
     """
     if not is_tesseract_available():
-        raise RuntimeError(
-            "Tesseract OCR is not installed or not in PATH.\n"
-            "Installation instructions:\n"
-            "- macOS: brew install tesseract\n"
-            "- Linux: sudo apt-get install tesseract-ocr\n"
-            "- Windows: winget install UB-Mannheim.TesseractOCR"
-        )
+        return [], 0.0
 
     doc = pymupdf.open(pdf_path)
     if doc.is_encrypted and password:
