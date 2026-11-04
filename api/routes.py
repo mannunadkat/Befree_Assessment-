@@ -4,7 +4,10 @@ import os
 import json
 import asyncio
 from typing import List, Optional
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None
 import numpy as np
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, Response, StreamingResponse
@@ -262,7 +265,7 @@ async def get_page_image(
     if highlight:
         try:
             coords = [float(x.strip()) for x in highlight.split(",")]
-            if len(coords) == 4:
+            if cv2 is not None and len(coords) == 4:
                 scale = 150.0 / 72.0
                 x0 = int(coords[0] * scale)
                 top = int(coords[1] * scale)
