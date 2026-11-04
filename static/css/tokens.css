@@ -1,0 +1,249 @@
+/* ===================================================================
+   DESIGN TOKENS — Bank Statement Processing System
+   Premium fintech design system (Stripe / Linear / Revolut quality)
+   =================================================================== */
+
+:root {
+  /* ── Brand Gradient ── */
+  --brand-gradient: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7, #ec4899);
+  --brand-gradient-hover: linear-gradient(135deg, #818cf8, #a78bfa, #c084fc, #f472b6);
+  --brand-gradient-subtle: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15));
+
+  /* ── Typography ── */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  --text-xs: 0.6875rem;   /* 11px */
+  --text-sm: 0.8125rem;   /* 13px */
+  --text-base: 0.875rem;  /* 14px */
+  --text-md: 0.9375rem;   /* 15px */
+  --text-lg: 1.0625rem;   /* 17px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+  --text-4xl: 2.25rem;    /* 36px */
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+
+  /* ── Spacing ── */
+  --space-0: 0;
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+  --space-20: 5rem;    /* 80px */
+
+  /* ── Radii ── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -1px rgba(0,0,0,0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.12), 0 10px 10px -5px rgba(0,0,0,0.04);
+  --shadow-glow: 0 0 20px rgba(99,102,241,0.25);
+  --shadow-glow-lg: 0 0 40px rgba(139,92,246,0.3);
+
+  /* ── Transitions ── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+
+  /* ── Z-Index ── */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+
+  /* ── Layout ── */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --topbar-height: 56px;
+  --content-max-width: 1400px;
+
+  /* ── Category Colors (consistent across chips, charts, table dots) ── */
+  --cat-salary: #10b981;
+  --cat-transfer-in: #34d399;
+  --cat-transfer-out: #f59e0b;
+  --cat-food: #f97316;
+  --cat-groceries: #84cc16;
+  --cat-shopping: #ec4899;
+  --cat-travel: #3b82f6;
+  --cat-fuel: #78716c;
+  --cat-utilities: #06b6d4;
+  --cat-recharge: #8b5cf6;
+  --cat-rent: #ef4444;
+  --cat-emi: #dc2626;
+  --cat-insurance: #0ea5e9;
+  --cat-investments: #14b8a6;
+  --cat-stocks: #22d3ee;
+  --cat-entertainment: #d946ef;
+  --cat-healthcare: #f43f5e;
+  --cat-education: #6366f1;
+  --cat-atm: #a855f7;
+  --cat-cash-deposit: #16a34a;
+  --cat-bank-charges: #94a3b8;
+  --cat-interest: #059669;
+  --cat-tax: #b91c1c;
+  --cat-refund: #4ade80;
+  --cat-cheque: #7c3aed;
+  --cat-credit-card: #e11d48;
+  --cat-wallet: #f59e0b;
+  --cat-donations: #a78bfa;
+  --cat-uncategorized: #64748b;
+}
+
+/* ════════════════════════════════════════════════════════
+   DARK THEME (Default)
+   ════════════════════════════════════════════════════════ */
+[data-theme="dark"], :root {
+  --color-bg: #0a0a1a;
+  --color-bg-alt: #0f0f23;
+  --color-bg-raised: #161629;
+  --color-bg-elevated: #1e1e3a;
+  --color-bg-hover: #242447;
+  --color-bg-active: #2a2a55;
+
+  --color-surface: rgba(22, 22, 41, 0.6);
+  --color-surface-border: rgba(99, 102, 241, 0.12);
+  --color-surface-hover: rgba(30, 30, 58, 0.7);
+
+  --glass-bg: rgba(22, 22, 41, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+
+  --color-text-primary: #f0f0f5;
+  --color-text-secondary: #a0a0bf;
+  --color-text-tertiary: #6b6b8a;
+  --color-text-muted: #4a4a6a;
+
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-subtle: rgba(255, 255, 255, 0.04);
+  --color-border-focus: rgba(99, 102, 241, 0.5);
+
+  --color-credit: #34d399;
+  --color-credit-bg: rgba(52, 211, 153, 0.12);
+  --color-debit: #fb7185;
+  --color-debit-bg: rgba(251, 113, 133, 0.12);
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, 0.12);
+  --color-error: #f43f5e;
+  --color-error-bg: rgba(244, 63, 94, 0.12);
+  --color-success: #10b981;
+  --color-success-bg: rgba(16, 185, 129, 0.12);
+  --color-info: #60a5fa;
+  --color-info-bg: rgba(96, 165, 250, 0.12);
+
+  --color-brand: #818cf8;
+  --color-brand-hover: #a5b4fc;
+  --color-brand-bg: rgba(99, 102, 241, 0.12);
+
+  --color-scrollbar: rgba(255, 255, 255, 0.08);
+  --color-scrollbar-hover: rgba(255, 255, 255, 0.15);
+
+  --color-skeleton: rgba(255, 255, 255, 0.04);
+  --color-skeleton-shimmer: rgba(255, 255, 255, 0.08);
+
+  --aurora-1: rgba(99, 102, 241, 0.08);
+  --aurora-2: rgba(139, 92, 246, 0.06);
+  --aurora-3: rgba(236, 72, 153, 0.05);
+
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-text: #a0a0bf;
+}
+
+/* ════════════════════════════════════════════════════════
+   LIGHT THEME
+   ════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  --color-bg: #f7f7fb;
+  --color-bg-alt: #f0f0f6;
+  --color-bg-raised: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-hover: #ececf4;
+  --color-bg-active: #e0e0ee;
+
+  --color-surface: rgba(255, 255, 255, 0.7);
+  --color-surface-border: rgba(99, 102, 241, 0.1);
+  --color-surface-hover: rgba(255, 255, 255, 0.85);
+
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+
+  --color-text-primary: #1a1a2e;
+  --color-text-secondary: #555573;
+  --color-text-tertiary: #8888a5;
+  --color-text-muted: #b0b0c8;
+
+  --color-border: rgba(0, 0, 0, 0.07);
+  --color-border-subtle: rgba(0, 0, 0, 0.04);
+  --color-border-focus: rgba(99, 102, 241, 0.4);
+
+  --color-credit: #059669;
+  --color-credit-bg: rgba(5, 150, 105, 0.08);
+  --color-debit: #e11d48;
+  --color-debit-bg: rgba(225, 29, 72, 0.08);
+  --color-warning: #d97706;
+  --color-warning-bg: rgba(217, 119, 6, 0.08);
+  --color-error: #dc2626;
+  --color-error-bg: rgba(220, 38, 38, 0.08);
+  --color-success: #059669;
+  --color-success-bg: rgba(5, 150, 105, 0.08);
+  --color-info: #2563eb;
+  --color-info-bg: rgba(37, 99, 235, 0.08);
+
+  --color-brand: #6366f1;
+  --color-brand-hover: #4f46e5;
+  --color-brand-bg: rgba(99, 102, 241, 0.08);
+
+  --color-scrollbar: rgba(0, 0, 0, 0.1);
+  --color-scrollbar-hover: rgba(0, 0, 0, 0.2);
+
+  --color-skeleton: rgba(0, 0, 0, 0.04);
+  --color-skeleton-shimmer: rgba(0, 0, 0, 0.06);
+
+  --aurora-1: rgba(99, 102, 241, 0.04);
+  --aurora-2: rgba(139, 92, 246, 0.03);
+  --aurora-3: rgba(236, 72, 153, 0.02);
+
+  --chart-grid: rgba(0, 0, 0, 0.08);
+  --chart-text: #555573;
+
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -1px rgba(0,0,0,0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.03);
+  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.08), 0 10px 10px -5px rgba(0,0,0,0.02);
+  --shadow-glow: 0 0 20px rgba(99,102,241,0.15);
+  --shadow-glow-lg: 0 0 40px rgba(139,92,246,0.2);
+}

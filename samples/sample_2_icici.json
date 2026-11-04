@@ -1,0 +1,79 @@
+{
+  "bank_name": "ICICI BANK LIMITED",
+  "account_holder_name": "PRIYA SHARMA",
+  "account_number": "000401582910",
+  "customer_id": "54219876",
+  "ifsc_code": "ICIC0000004",
+  "micr_code": "110229002",
+  "branch_name": "CONNAUGHT PLACE, NEW DELHI",
+  "statement_period": "01-02-2024 to 29-02-2024",
+  "opening_balance": 55000.0,
+  "closing_balance": 129282.0,
+  "currency": "INR",
+  "transactions": [
+    {
+      "date": "2024-02-03",
+      "description": "UPI/403482716254/Uber India/uber@axis",
+      "debit": 420.0,
+      "credit": null,
+      "balance": 54580.0,
+      "category": "Travel & Transport"
+    },
+    {
+      "date": "2024-02-06",
+      "description": "POS/BIGBASKET INDIRANAGAR/99281",
+      "debit": 3450.0,
+      "credit": null,
+      "balance": 51130.0,
+      "category": "Groceries"
+    },
+    {
+      "date": "2024-02-10",
+      "description": "SALARY CREDIT - INFOSYS LTD FEB 2024",
+      "debit": null,
+      "credit": 92000.0,
+      "balance": 143130.0,
+      "category": "Salary/Income"
+    },
+    {
+      "date": "2024-02-14",
+      "description": "UPI/404592837162/ZOMATO RESTAURANT/zomato@hdfc",
+      "debit": 890.0,
+      "credit": null,
+      "balance": 142240.0,
+      "category": "Food & Dining"
+    },
+    {
+      "date": "2024-02-18",
+      "description": "ZERODHA BROKING LTD EQUITY SIP",
+      "debit": 10000.0,
+      "credit": null,
+      "balance": 132240.0,
+      "category": "Stocks"
+    },
+    {
+      "date": "2024-02-21",
+      "description": "JIO PREPAID RECHARGE 8829102910",
+      "debit": 749.0,
+      "credit": null,
+      "balance": 131491.0,
+      "category": "Mobile/Internet/DTH Recharge"
+    },
+    {
+      "date": "2024-02-25",
+      "description": "ELECTRICITY BILL BESCOM BANGALORE",
+      "debit": 2150.0,
+      "credit": null,
+      "balance": 129341.0,
+      "category": "Utilities & Bills"
+    },
+    {
+      "date": "2024-02-28",
+      "description": "ANNUAL SMS CHARGES + GST",
+      "debit": 59.0,
+      "credit": null,
+      "balance": 129282.0,
+      "category": "Bank Charges/Fees"
+    }
+  ]
+}

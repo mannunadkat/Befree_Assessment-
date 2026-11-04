@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AuraBank • Bank Statement Intelligence & Classification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  <link rel="stylesheet" href="/static/css/animations.css">
+
+  <!-- Vendor Fallback Check & Preloads -->
+  <script src="/static/vendor/lucide.min.js"></script>
+  <script src="/static/vendor/gsap.min.js"></script>
+  <script src="/static/vendor/chart.umd.min.js"></script>
+  <script src="/static/vendor/confetti.browser.min.js"></script>
+</head>
+<body>
+  <!-- Mesh Aurora Animated Background -->
+  <div class="aurora-bg" aria-hidden="true">
+    <div class="aurora-blob aurora-blob-1"></div>
+    <div class="aurora-blob aurora-blob-2"></div>
+    <div class="aurora-blob aurora-blob-3"></div>
+  </div>
+  <div class="grid-overlay" aria-hidden="true"></div>
+  <canvas id="confetti-canvas"></canvas>
+
+  <div id="app">
+    <!-- Collapsible Sidebar -->
+    <aside class="sidebar" id="sidebar" aria-label="Main Navigation">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">
+          <i data-lucide="layers"></i>
+        </div>
+        <div class="sidebar-brand-text">
+          <h1>AuraBank</h1>
+          <p>Statement Intelligence</p>
+        </div>
+      </div>
+
+      <nav class="nav-list" role="navigation">
+        <a href="#upload" class="nav-item active" data-view="upload">
+          <i data-lucide="upload-cloud"></i>
+          <span class="nav-label">Upload</span>
+        </a>
+        <a href="#overview" class="nav-item" data-view="overview">
+          <i data-lucide="layout-dashboard"></i>
+          <span class="nav-label">Overview</span>
+        </a>
+        <a href="#transactions" class="nav-item" data-view="transactions">
+          <i data-lucide="receipt"></i>
+          <span class="nav-label">Transactions</span>
+        </a>
+        <a href="#analytics" class="nav-item" data-view="analytics">
+          <i data-lucide="pie-chart"></i>
+          <span class="nav-label">Analytics</span>
+        </a>
+        <a href="#validation" class="nav-item" data-view="validation">
+          <i data-lucide="check-check"></i>
+          <span class="nav-label">Validation</span>
+        </a>
+        <a href="#export" class="nav-item" data-view="export">
+          <i data-lucide="download"></i>
+          <span class="nav-label">Export</span>
+        </a>
+      </nav>
+
+      <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle Sidebar">
+        <i data-lucide="chevron-left"></i>
+        <span class="nav-label">Collapse</span>
+      </button>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-area">
+      <!-- Top Navigation Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h2 class="topbar-title" id="topbar-title">Upload Statement</h2>
+          <span id="ocr-status-pill" class="chip chip-info" style="display:none;">
+            <i data-lucide="cpu" style="width:12px;height:12px;"></i>
+            <span id="ocr-status-text">OCR Ready</span>
+          </span>
+        </div>
+
+        <div class="topbar-right">
+          <button class="btn btn-secondary btn-sm" id="btn-load-demo" title="Load synthetic HDFC statement">
+            <i data-lucide="sparkles"></i>
+            <span>Load Demo</span>
+          </button>
+          <button class="btn btn-ghost btn-sm" id="btn-cmd-palette" title="Command Palette (Cmd+K / Ctrl+K)">
+            <i data-lucide="command"></i>
+            <span style="font-size:11px;opacity:0.7;">⌘K</span>
+          </button>
+          <button class="btn btn-ghost btn-icon" id="btn-settings" title="Processing Settings">
+            <i data-lucide="settings"></i>
+          </button>
+          <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Dark/Light Mode">
+            <i data-lucide="moon" id="theme-icon"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Dynamic Views Container -->
+      <div class="content">
+
+        <!-- 1. UPLOAD VIEW -->
+        <section id="view-upload" class="view active">
+          <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6);">
+            <div style="text-align: center; margin-bottom: var(--space-2);">
+              <h1 style="font-size: var(--text-3xl); font-weight: var(--weight-bold); margin-bottom: var(--space-2); letter-spacing: var(--tracking-tight);">
+                Financial Statement Intelligence
+              </h1>
+              <p style="color: var(--color-text-secondary); font-size: var(--text-md); max-width: 580px; margin: 0 auto;">
+                High-precision, local non-LLM parsing for digital and scanned PDFs. Geometric table reconstruction, ML classification, and balance reconciliation.
+              </p>
+            </div>
+
+            <!-- Upload Zone -->
+            <div class="upload-zone upload-glow" id="drop-zone">
+              <input type="file" id="file-input" multiple accept=".pdf,.csv,.json" class="sr-only">
+              <div class="upload-icon">
+                <i data-lucide="file-up"></i>
+              </div>
+              <h3 class="upload-title">Drop bank statement PDFs, CSVs, or JSON files here</h3>
+              <p class="upload-subtitle">Supports text & scanned PDFs from SBI, HDFC, ICICI, Kotak, Axis & more, plus CSV & JSON files</p>
+              <div style="margin-top: var(--space-4); display: flex; gap: var(--space-3);">
+                <button class="btn btn-primary" id="btn-browse-files">
+                  <i data-lucide="plus"></i> Browse Files (.pdf, .csv, .json)
+                </button>
+                <button class="btn btn-secondary" id="btn-upload-demo">
+                  <i data-lucide="play"></i> Try Sample Data
+                </button>
+              </div>
+            </div>
+
+            <!-- File Queue Card -->
+            <div class="card" id="queue-card" style="display: none;">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Queued Statements</h3>
+                  <p class="card-subtitle" id="queue-meta">0 files selected</p>
+                </div>
+                <div style="display: flex; gap: var(--space-2);">
+                  <button class="btn btn-ghost btn-sm" id="btn-clear-queue">Clear All</button>
+                  <button class="btn btn-primary" id="btn-process-queue">
+                    <i data-lucide="play"></i>
+                    <span>Process Statement(s)</span>
+                  </button>
+                </div>
+              </div>
+              <div id="queue-list" style="display: flex; flex-direction: column; gap: var(--space-2);">
+                <!-- Dynamically populated files -->
+              </div>
+            </div>
+
+            <!-- Processing Pipeline Live Stepper Card -->
+            <div class="card" id="pipeline-card" style="display: none;">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Processing Pipeline</h3>
+                  <p class="card-subtitle" id="pipeline-message">Initializing engine...</p>
+                </div>
+                <div class="chip chip-info" id="pipeline-badge">
+                  <span class="chip-dot" style="background:currentColor;"></span>
+                  <span id="pipeline-percentage">0%</span>
+                </div>
+              </div>
+
+              <!-- Horizontal Animated Stepper -->
+              <div class="stepper" id="pipeline-stepper">
+                <div class="step active" id="step-detect">
+                  <i data-lucide="search"></i>
+                  <span>Detect</span>
+                </div>
+                <div class="step-connector" id="conn-1"></div>
+                <div class="step" id="step-extract">
+                  <i data-lucide="file-text"></i>
+                  <span>Extract</span>
+                </div>
+                <div class="step-connector" id="conn-2"></div>
+                <div class="step" id="step-parse">
+                  <i data-lucide="table"></i>
+                  <span>Parse</span>
+                </div>
+                <div class="step-connector" id="conn-3"></div>
+                <div class="step" id="step-validate">
+                  <i data-lucide="check-check"></i>
+                  <span>Validate</span>
+                </div>
+                <div class="step-connector" id="conn-4"></div>
+                <div class="step" id="step-classify">
+                  <i data-lucide="tag"></i>
+                  <span>Classify</span>
+                </div>
+              </div>
+
+              <div class="progress-bar" style="margin-top: var(--space-4);">
+                <div class="progress-fill" id="pipeline-progress" style="width: 0%;"></div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; margin-top: var(--space-3); font-size: var(--text-xs); color: var(--color-text-tertiary);">
+                <span id="pipeline-subtext">Checking PDF layout & security...</span>
+                <span>Found: <strong id="pipeline-txn-counter" class="money" style="color:var(--color-text-primary);">0</strong> txns</span>
+              </div>
+            </div>
+
+            <!-- Pipeline Feature Highlights -->
+            <div class="grid-cols-3" style="margin-top: var(--space-4);">
+              <div class="card card-sm">
+                <div style="display:flex; align-items:center; gap:var(--space-2); margin-bottom:var(--space-1); color:var(--color-brand);">
+                  <i data-lucide="shield-check" style="width:16px;height:16px;"></i>
+                  <strong style="font-size:var(--text-sm);">100% Local & Private</strong>
+                </div>
+                <p style="font-size:var(--text-xs); color:var(--color-text-tertiary);">No cloud LLM API calls. Your financial data stays entirely on your local machine.</p>
+              </div>
+              <div class="card card-sm">
+                <div style="display:flex; align-items:center; gap:var(--space-2); margin-bottom:var(--space-1); color:var(--color-credit);">
+                  <i data-lucide="scan-line" style="width:16px;height:16px;"></i>
+                  <strong style="font-size:var(--text-sm);">Scanned PDF & OCR</strong>
+                </div>
+                <p style="font-size:var(--text-xs); color:var(--color-text-tertiary);">Hybrid PDF analyzer with automatic image extraction, deskew, and Tesseract word-box OCR.</p>
+              </div>
+              <div class="card card-sm">
+                <div style="display:flex; align-items:center; gap:var(--space-2); margin-bottom:var(--space-1); color:var(--color-warning);">
+                  <i data-lucide="calculator" style="width:16px;height:16px;"></i>
+                  <strong style="font-size:var(--text-sm);">Math Auto-Repair</strong>
+                </div>
+                <p style="font-size:var(--text-xs); color:var(--color-text-tertiary);">Running balance delta validator flags column inversions and fixes OCR digit errors on the fly.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- 2. OVERVIEW VIEW -->
+        <section id="view-overview" class="view">
+          <div style="display: flex; flex-direction: column; gap: var(--space-6);">
+            <!-- Top Account Summary & Reconciliation Banner -->
+            <div id="overview-reconciliation-container"></div>
+
+            <div style="display: grid; grid-template-columns: 1.2fr 2fr; gap: var(--space-6);">
+              <!-- 3D Bank Card / Account Info -->
+              <div class="account-card" id="account-card-widget">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                  <span class="bank-name" id="acc-bank-name">BANK STATEMENT</span>
+                  <span class="chip" id="acc-pdf-type-chip" style="background:rgba(255,255,255,0.2); color:white;">Text PDF</span>
+                </div>
+                <div class="account-number" id="acc-number">•••• •••• •••• ••••</div>
+                <div class="account-details-grid">
+                  <div>
+                    <div class="detail-label">Account Holder</div>
+                    <div class="detail-value" id="acc-holder">Customer Name</div>
+                  </div>
+                  <div>
+                    <div class="detail-label">IFSC Code</div>
+                    <div class="detail-value" id="acc-ifsc">—</div>
+                  </div>
+                  <div>
+                    <div class="detail-label">Opening Balance</div>
+                    <div class="detail-value money" id="acc-open-bal">₹0.00</div>
+                  </div>
+                  <div>
+                    <div class="detail-label">Closing Balance</div>
+                    <div class="detail-value money" id="acc-close-bal">₹0.00</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Key Metrics KPI Cards -->
+              <div class="grid-cols-2" id="kpi-grid">
+                <div class="card kpi-card">
+                  <div class="kpi-icon" style="background:var(--color-credit-bg); color:var(--color-credit);">
+                    <i data-lucide="arrow-down-left"></i>
+                  </div>
+                  <span class="kpi-label">Total Deposits (Credits)</span>
+                  <span class="kpi-value money" style="color:var(--color-credit);" id="kpi-total-credits">₹0.00</span>
+                  <span style="font-size:var(--text-xs); color:var(--color-text-tertiary);" id="kpi-credits-count">0 transactions</span>
+                </div>
+
+                <div class="card kpi-card">
+                  <div class="kpi-icon" style="background:var(--color-debit-bg); color:var(--color-debit);">
+                    <i data-lucide="arrow-up-right"></i>
+                  </div>
+                  <span class="kpi-label">Total Spend (Debits)</span>
+                  <span class="kpi-value money" style="color:var(--color-debit);" id="kpi-total-debits">₹0.00</span>
+                  <span style="font-size:var(--text-xs); color:var(--color-text-tertiary);" id="kpi-debits-count">0 transactions</span>
+                </div>
+
+                <div class="card kpi-card">
+                  <div class="kpi-icon" style="background:var(--color-brand-bg); color:var(--color-brand);">
+                    <i data-lucide="scale"></i>
+                  </div>
+                  <span class="kpi-label">Net Cash Flow</span>
+                  <span class="kpi-value money" id="kpi-net-flow">₹0.00</span>
+                  <span style="font-size:var(--text-xs); color:var(--color-text-tertiary);">Credits − Debits</span>
+                </div>
+
+                <div class="card kpi-card">
+                  <div class="kpi-icon" style="background:var(--color-info-bg); color:var(--color-info);">
+                    <i data-lucide="list-ordered"></i>
+                  </div>
+                  <span class="kpi-label">Parsed Transactions</span>
+                  <span class="kpi-value money" id="kpi-total-txns">0</span>
+                  <span style="font-size:var(--text-xs); color:var(--color-text-tertiary);" id="kpi-validated-pct">100% Reconciled</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Insights Section -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Automated Financial Insights</h3>
+                  <p class="card-subtitle">Heuristic patterns and expenditure breakdowns</p>
+                </div>
+              </div>
+              <div class="grid-cols-4" id="overview-insights-grid">
+                <!-- Injected via overview.js -->
+              </div>
+            </div>
+
+            <!-- Mini Recent Activity -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Recent Transactions Preview</h3>
+                  <p class="card-subtitle">Latest records parsed from the statement</p>
+                </div>
+                <a href="#transactions" class="btn btn-secondary btn-sm">View All in Table</a>
+              </div>
+              <div id="overview-recent-table-wrap" class="data-table-wrap">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- 3. TRANSACTIONS VIEW -->
+        <section id="view-transactions" class="view">
+          <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+            <!-- Filter & Action Toolbar -->
+            <div class="card card-sm">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3);">
+                <!-- Search & Filters -->
+                <div style="display: flex; align-items: center; gap: var(--space-3); flex: 1; min-width: 280px;">
+                  <div class="search-bar" style="flex: 1; max-width: 380px;">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="txn-search-input" placeholder="Search narration, counterparty, ref no, amount... (/ to focus)">
+                  </div>
+
+                  <select class="select" id="filter-category" title="Filter by Category">
+                    <option value="">All Categories</option>
+                  </select>
+
+                  <select class="select" id="filter-mode" title="Filter by Mode">
+                    <option value="">All Modes</option>
+                    <option value="UPI">UPI</option>
+                    <option value="NEFT">NEFT</option>
+                    <option value="IMPS">IMPS</option>
+                    <option value="RTGS">RTGS</option>
+                    <option value="ATM">ATM</option>
+                    <option value="POS">POS / Card</option>
+                    <option value="ECS/NACH">ECS / NACH</option>
+                    <option value="Interest">Interest</option>
+                    <option value="Bank Charges">Bank Charges</option>
+                  </select>
+
+                  <select class="select" id="filter-status" title="Filter by Validation Status">
+                    <option value="">All Statuses</option>
+                    <option value="OK">OK</option>
+                    <option value="Repaired">Auto-Repaired</option>
+                    <option value="Mismatch">Mismatch</option>
+                  </select>
+                </div>
+
+                <!-- View Options & Actions -->
+                <div style="display: flex; align-items: center; gap: var(--space-2);">
+                  <button class="btn btn-secondary btn-sm" id="btn-toggle-density" title="Toggle Compact Density">
+                    <i data-lucide="align-justify"></i>
+                    <span>Density</span>
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btn-retrain-model" title="Retrain ML classifier with overrides">
+                    <i data-lucide="refresh-cw"></i>
+                    <span>Retrain ML</span>
+                  </button>
+                  <a href="#export" class="btn btn-primary btn-sm">
+                    <i data-lucide="download"></i>
+                    <span>Export</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Transactions Table Card -->
+            <div class="card" style="padding: 0; overflow: hidden;">
+              <div class="data-table-wrap" id="transactions-table-wrap">
+                <table class="data-table" id="transactions-table">
+                  <thead>
+                    <tr>
+                      <th data-sort="date">Date <span class="sort-icon">↕</span></th>
+                      <th data-sort="description" style="min-width:240px;">Narration & Counterparty <span class="sort-icon">↕</span></th>
+                      <th data-sort="payment_mode">Mode <span class="sort-icon">↕</span></th>
+                      <th data-sort="category" style="min-width:160px;">Category <span class="sort-icon">↕</span></th>
+                      <th data-sort="debit" style="text-align:right;">Debit (Withdrawal) <span class="sort-icon">↕</span></th>
+                      <th data-sort="credit" style="text-align:right;">Credit (Deposit) <span class="sort-icon">↕</span></th>
+                      <th data-sort="balance" style="text-align:right;">Balance <span class="sort-icon">↕</span></th>
+                      <th data-sort="validation_status" style="text-align:center;">Status <span class="sort-icon">↕</span></th>
+                      <th style="text-align:center;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="txn-table-body">
+                    <!-- Populated dynamically via table.js -->
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Pagination Footer -->
+              <div class="pagination">
+                <div class="pagination-info" id="pagination-info">
+                  Showing 0 of 0 transactions
+                </div>
+                <div class="pagination-buttons" id="pagination-buttons">
+                  <!-- Page numbers injected -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- 4. ANALYTICS VIEW -->
+        <section id="view-analytics" class="view">
+          <div style="display: flex; flex-direction: column; gap: var(--space-6);">
+            <div class="grid-cols-2">
+              <!-- Spending by Category Doughnut -->
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Spending by Category</h3>
+                    <p class="card-subtitle">Distribution of debits across classified buckets</p>
+                  </div>
+                </div>
+                <div style="position:relative; height: 320px; display:flex; align-items:center; justify-content:center;">
+                  <canvas id="chart-category-doughnut"></canvas>
+                </div>
+              </div>
+
+              <!-- Monthly Income vs Expense Combo -->
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Income vs Expenses</h3>
+                    <p class="card-subtitle">Monthly cash flow and net surplus/deficit</p>
+                  </div>
+                </div>
+                <div style="position:relative; height: 320px; display:flex; align-items:center; justify-content:center;">
+                  <canvas id="chart-monthly-bar"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-cols-2">
+              <!-- Top Counterparties / Merchants -->
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Top Merchants & Entities</h3>
+                    <p class="card-subtitle">Highest volume outflow destinations</p>
+                  </div>
+                </div>
+                <div style="position:relative; height: 300px;">
+                  <canvas id="chart-merchants-bar"></canvas>
+                </div>
+              </div>
+
+              <!-- Largest Individual Expenses -->
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <h3 class="card-title">Top 10 Largest Expenses</h3>
+                    <p class="card-subtitle">Outliers and high-value transactions</p>
+                  </div>
+                </div>
+                <div id="top-expenses-list" style="display:flex; flex-direction:column; gap:var(--space-2); max-height:300px; overflow-y:auto;">
+                  <!-- Rendered via charts.js -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- 5. VALIDATION VIEW -->
+        <section id="view-validation" class="view">
+          <div style="display: flex; flex-direction: column; gap: var(--space-6);">
+            <!-- Mathematical Integrity Overview -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Balance Reconciliation Engine</h3>
+                  <p class="card-subtitle">Formula: Opening Balance + Total Deposits − Total Withdrawals = Closing Balance</p>
+                </div>
+                <div id="validation-overall-badge"></div>
+              </div>
+
+              <div class="grid-cols-4" style="margin-top: var(--space-2);">
+                <div class="card card-sm" style="background:var(--color-bg-raised);">
+                  <div style="font-size:var(--text-xs); color:var(--color-text-tertiary);">Reported Opening Balance</div>
+                  <div class="money" id="val-reported-open" style="font-size:var(--text-lg); font-weight:var(--weight-bold); margin-top:4px;">₹0.00</div>
+                </div>
+                <div class="card card-sm" style="background:var(--color-bg-raised);">
+                  <div style="font-size:var(--text-xs); color:var(--color-text-tertiary);">Reported Closing Balance</div>
+                  <div class="money" id="val-reported-close" style="font-size:var(--text-lg); font-weight:var(--weight-bold); margin-top:4px;">₹0.00</div>
+                </div>
+                <div class="card card-sm" style="background:var(--color-bg-raised);">
+                  <div style="font-size:var(--text-xs); color:var(--color-text-tertiary);">Calculated Final Balance</div>
+                  <div class="money" id="val-calculated-close" style="font-size:var(--text-lg); font-weight:var(--weight-bold); margin-top:4px;">₹0.00</div>
+                </div>
+                <div class="card card-sm" style="background:var(--color-bg-raised);">
+                  <div style="font-size:var(--text-xs); color:var(--color-text-tertiary);">Discrepancy (Delta)</div>
+                  <div class="money" id="val-discrepancy" style="font-size:var(--text-lg); font-weight:var(--weight-bold); margin-top:4px;">₹0.00</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Issues & Auto-Repair Audit Log -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h3 class="card-title">Audit Trail & Auto-Repaired Rows</h3>
+                  <p class="card-subtitle">Rows where running balance equations flagged or corrected misread values</p>
+                </div>
+                <span class="chip chip-info" id="val-issues-count">0 issues</span>
+              </div>
+              <div id="validation-issues-list" style="display:flex; flex-direction:column; gap:var(--space-3);">
+                <!-- Populated dynamically via validation.js -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- 6. EXPORT VIEW -->
+        <section id="view-export" class="view">
+          <div style="max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-6);">
+            <div style="text-align: center; margin-bottom: var(--space-2);">
+              <h1 style="font-size: var(--text-2xl); font-weight: var(--weight-bold); margin-bottom: var(--space-2);">
+                Export Intelligence Reports
+              </h1>
+              <p style="color: var(--color-text-secondary); font-size: var(--text-sm);">
+                Download clean, categorized, structured outputs ready for accounting software, audit review, or database import.
+              </p>
+            </div>
+
+            <div class="grid-cols-2">
+              <!-- Excel Export Card -->
+              <div class="card export-card" id="export-xlsx-card">
+                <div class="export-card-icon" style="background:rgba(16,185,129,0.15); color:var(--color-credit);">
+                  <i data-lucide="file-spreadsheet"></i>
+                </div>
+                <h3>Multi-Sheet Excel (.xlsx)</h3>
+                <p>Includes Account Details, Formatted Transactions with conditional formatting, Category Summary with native chart, Monthly Summary, and Validation Report.</p>
+                <button class="btn btn-primary" id="btn-download-xlsx" style="width: 100%;">
+                  <i data-lucide="download"></i>
+                  <span>Download Excel (.xlsx)</span>
+                </button>
+              </div>
+
+              <!-- CSV Export Card -->
+              <div class="card export-card" id="export-csv-card">
+                <div class="export-card-icon" style="background:rgba(99,102,241,0.15); color:var(--color-brand);">
+                  <i data-lucide="file-code"></i>
+                </div>
+                <h3>Standard Flat CSV (.csv)</h3>
+                <p>Lightweight tabular output containing ISO dates, descriptions, counterparties, debit/credit, balance, assigned categories, payment modes, and OCR flags.</p>
+                <button class="btn btn-secondary" id="btn-download-csv" style="width: 100%;">
+                  <i data-lucide="download"></i>
+                  <span>Download CSV (.csv)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Export Summary Preview -->
+            <div class="card card-sm">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:var(--space-3);">
+                  <div style="width:36px; height:36px; border-radius:var(--radius-md); background:var(--brand-gradient); display:flex; align-items:center; justify-content:center; color:white;">
+                    <i data-lucide="check" style="width:18px;height:18px;"></i>
+                  </div>
+                  <div>
+                    <strong style="font-size:var(--text-sm);" id="export-summary-text">0 transactions ready for export</strong>
+                    <div style="font-size:var(--text-xs); color:var(--color-text-tertiary);" id="export-summary-subtext">All columns mapped, categories assigned, and balance verified</div>
+                  </div>
+                </div>
+                <span class="chip chip-success">Verified</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Detail Drawer (Transaction Inspection & PDF Page Crop) -->
+  <div class="drawer-backdrop" id="drawer-backdrop"></div>
+  <aside class="drawer" id="detail-drawer" aria-label="Transaction Detail">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:var(--space-6);">
+      <h3 style="font-size:var(--text-lg); font-weight:var(--weight-semibold);">Transaction Details</h3>
+      <button class="btn btn-ghost btn-icon" id="btn-close-drawer">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <div id="drawer-content" style="display:flex; flex-direction:column; gap:var(--space-4);">
+      <!-- Injected via table.js -->
+    </div>
+  </aside>
+
+  <!-- Password Required Modal -->
+  <div class="modal-overlay" id="password-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Password Protected PDF</h3>
+        <button class="btn btn-ghost btn-icon" id="btn-close-pwd-modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <p style="font-size:var(--text-sm); color:var(--color-text-secondary); margin-bottom:var(--space-4);" id="pwd-modal-desc">
+        This statement is encrypted. Please enter the password (e.g. PAN, DOB, or account customer ID) to unlock and extract.
+      </p>
+      <div class="input-group" style="margin-bottom:var(--space-4);">
+        <label class="input-label" for="pdf-password-input">Statement Password</label>
+        <input type="password" id="pdf-password-input" class="input" placeholder="Enter PDF password">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:var(--space-2);">
+        <button class="btn btn-secondary" id="btn-cancel-password">Cancel</button>
+        <button class="btn btn-primary" id="btn-submit-password">Unlock & Process</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Drawer / Modal -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Engine Configuration</h3>
+        <button class="btn btn-ghost btn-icon" id="btn-close-settings">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:var(--space-4);">
+        <div>
+          <label class="input-label" for="setting-ocr-dpi">OCR Render Resolution (DPI)</label>
+          <select class="select" id="setting-ocr-dpi" style="width:100%; margin-top:4px;">
+            <option value="200">200 DPI (Fast)</option>
+            <option value="300" selected>300 DPI (Balanced / Recommended)</option>
+            <option value="400">400 DPI (High precision)</option>
+          </select>
+          <div style="font-size:var(--text-xs); color:var(--color-text-tertiary); margin-top:4px;">Higher DPI improves tiny digits and scanned tables at the cost of processing time.</div>
+        </div>
+
+        <div>
+          <label class="input-label" for="setting-threshold">ML Classification Threshold</label>
+          <input type="range" id="setting-threshold" min="0.30" max="0.90" step="0.05" value="0.55" style="width:100%; margin-top:4px;">
+          <div style="display:flex; justify-content:space-between; font-size:var(--text-xs); color:var(--color-text-tertiary);">
+            <span>Low (0.30)</span>
+            <span id="threshold-val" style="font-weight:var(--weight-bold); color:var(--color-brand);">0.55</span>
+            <span>Strict (0.90)</span>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:var(--text-sm); font-weight:var(--weight-medium);">Deduplicate Overlapping Rows</div>
+            <div style="font-size:var(--text-xs); color:var(--color-text-tertiary);">Remove duplicate records if merging statements</div>
+          </div>
+          <div class="toggle active" id="toggle-dedupe"></div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:var(--text-sm); font-weight:var(--weight-medium);">Mask Account Numbers</div>
+            <div style="font-size:var(--text-xs); color:var(--color-text-tertiary);">Redact sensitive account digits in exports & UI</div>
+          </div>
+          <div class="toggle active" id="toggle-mask"></div>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:var(--space-2); margin-top:var(--space-6);">
+        <button class="btn btn-primary" id="btn-save-settings">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command Palette (Cmd+K) -->
+  <div class="modal-overlay" id="cmd-palette-modal">
+    <div class="modal" style="padding:var(--space-3); width:min(90vw, 500px);">
+      <div class="search-bar" style="border:none; box-shadow:none; padding:var(--space-3);">
+        <i data-lucide="command"></i>
+        <input type="text" id="cmd-search-input" placeholder="Type a command or navigate... (Esc to close)" style="font-size:var(--text-md);">
+      </div>
+      <div id="cmd-results" style="display:flex; flex-direction:column; gap:2px; max-height:280px; overflow-y:auto; padding:var(--space-2) 0; border-top:1px solid var(--color-border-subtle);">
+        <div class="nav-item" data-action="nav:upload"><i data-lucide="upload-cloud"></i> Go to Upload</div>
+        <div class="nav-item" data-action="nav:overview"><i data-lucide="layout-dashboard"></i> Go to Overview</div>
+        <div class="nav-item" data-action="nav:transactions"><i data-lucide="receipt"></i> Go to Transactions</div>
+        <div class="nav-item" data-action="nav:analytics"><i data-lucide="pie-chart"></i> Go to Analytics</div>
+        <div class="nav-item" data-action="nav:validation"><i data-lucide="check-check"></i> Go to Validation</div>
+        <div class="nav-item" data-action="nav:export"><i data-lucide="download"></i> Go to Export</div>
+        <div class="nav-item" data-action="action:demo"><i data-lucide="sparkles"></i> Load Demo Statement</div>
+        <div class="nav-item" data-action="action:theme"><i data-lucide="sun-moon"></i> Toggle Theme</div>
+        <div class="nav-item" data-action="action:retrain"><i data-lucide="refresh-cw"></i> Retrain ML Model</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ES Module Application Bootstrap -->
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

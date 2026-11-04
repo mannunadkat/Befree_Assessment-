@@ -1,0 +1,257 @@
+{
+  "categories": [
+    "Salary/Income",
+    "Transfer In",
+    "Transfer Out (Person)",
+    "Food & Dining",
+    "Groceries",
+    "Shopping",
+    "Travel & Transport",
+    "Fuel",
+    "Utilities & Bills",
+    "Mobile/Internet/DTH Recharge",
+    "Rent",
+    "EMI/Loan",
+    "Insurance",
+    "Investments/Mutual Funds/SIP",
+    "Stocks",
+    "Entertainment/Subscriptions",
+    "Healthcare",
+    "Education",
+    "ATM Withdrawal",
+    "Cash Deposit",
+    "Bank Charges/Fees",
+    "Interest Earned",
+    "Tax (GST/TDS/Income Tax)",
+    "Refund/Reversal",
+    "Cheque",
+    "Credit Card Payment",
+    "Wallet Top-up",
+    "Donations/Charity",
+    "Uncategorized"
+  ],
+  "payment_modes": {
+    "UPI": ["\\bupi\\b", "@[a-zA-Z0-9]+", "upi/"],
+    "NEFT": ["\\bneft\\b", "neft cr", "neft dr"],
+    "RTGS": ["\\brtgs\\b"],
+    "IMPS": ["\\bimps\\b", "imps-"],
+    "ATM": ["\\batm\\b", "atm wdl", "cash wdl", "nfs/"],
+    "POS": ["\\bpos\\b", "pos debit", "pos purchase", "edc"],
+    "ECS/NACH": ["\\bach\\b", "\\becs\\b", "\\bnach\\b"],
+    "Cheque": ["\\bcheque\\b", "\\bchq\\b", "chq no", "cheque deposit"],
+    "Cash Deposit": ["cash dep", "by cash", "cdm cash", "cash deposit"],
+    "Interest": ["int pd", "interest credited", "sb interest", "interest credit"],
+    "Bank Charges": ["chg", "charge", "fee", "sms charges", "annual maintenance", "folio charges"],
+    "Internet Banking": ["inb", "net banking", "inet", "mb/"]
+  },
+  "merchants": {
+    "Swiggy": ["swiggy", "viggy", "swiggy@axis", "swiggy instamart"],
+    "Zomato": ["zomato", "omato", "zomato@hdfc", "blinkit/zomato"],
+    "Blinkit": ["blinkit", "linkit", "grofers"],
+    "Zepto": ["zepto"],
+    "BigBasket": ["bigbasket", "bbdaily", "supermarket grocery"],
+    "Amazon": ["amazon", "amzn", "amazon pay", "amazon.in"],
+    "Flipkart": ["flipkart", "fk retail"],
+    "Myntra": ["myntra", "yntra"],
+    "Uber": ["uber", "uber india"],
+    "Ola": ["ola cabs", "ani tech", "olacabs"],
+    "Rapido": ["rapido"],
+    "IRCTC": ["irctc", "indian railway"],
+    "MakeMyTrip": ["makemytrip", "mmt"],
+    "Indigo": ["indigo", "goindigo"],
+    "Netflix": ["netflix"],
+    "Spotify": ["spotify"],
+    "Hotstar": ["hotstar", "disney hotstar"],
+    "YouTube": ["youtube", "google youtube"],
+    "Jio": ["jio", "reliance jio"],
+    "Airtel": ["airtel", "bharti airtel"],
+    "Vodafone Idea": ["vodafone", "idea", "vi recharge"],
+    "Zerodha": ["zerodha"],
+    "Groww": ["groww", "nextbillion"],
+    "Upstox": ["upstox", "rksv"],
+    "Paytm": ["paytm", "one97"],
+    "PhonePe": ["phonepe"],
+    "Google Pay": ["gpay", "google pay"],
+    "HPCL": ["hpcl", "hindustan petroleum"],
+    "BPCL": ["bpcl", "bharat petroleum"],
+    "IOCL": ["iocl", "indian oil"],
+    "CRED": ["cred", "dreamplug"],
+    "Apollo Pharmacy": ["apollo", "apollo pharmacy"],
+    "PharmEasy": ["pharmeasy"],
+    "1mg": ["1mg", "tata 1mg"],
+    "Tata AIA": ["tata aia"],
+    "HDFC Ergo": ["hdfc ergo"],
+    "LIC": ["lic of india", "life insurance corp"],
+    "Torrent Power": ["torrent power", "torrentpower", "torrent"]
+  },
+  "rules": [
+    {
+      "category": "Refund/Reversal",
+      "direction": "credit",
+      "regex": "\\b(refund|reversal|rev|cashback|rfd|chargeback)\\b",
+      "priority": 100
+    },
+    {
+      "category": "Salary/Income",
+      "direction": "credit",
+      "regex": "\\b(salary|sal credit|payroll|stipend|wages|bonus|cms/|client.*invoice)\\b",
+      "priority": 95
+    },
+    {
+      "category": "Interest Earned",
+      "direction": "credit",
+      "regex": "\\b(interest credit|int\\.pd|sb interest|quarterly interest|savings interest)\\b",
+      "priority": 90
+    },
+    {
+      "category": "Cash Deposit",
+      "direction": "credit",
+      "regex": "\\b(cash dep|by cash|cdm deposit|cash deposit)\\b",
+      "priority": 85
+    },
+    {
+      "category": "Transfer In",
+      "direction": "credit",
+      "regex": "\\b(neft cr|imps.*cr|upi.*cr|transfer from|ft from|received from)\\b",
+      "priority": 70
+    },
+    {
+      "category": "Credit Card Payment",
+      "direction": "debit",
+      "regex": "\\b(cred|credit card|card payment|sbi card|hdfc card|icici card|amex)\\b",
+      "priority": 95
+    },
+    {
+      "category": "Rent",
+      "direction": "debit",
+      "regex": "\\b(rent|house rent|landlord|room rent)\\b",
+      "priority": 90
+    },
+    {
+      "category": "EMI/Loan",
+      "direction": "debit",
+      "regex": "\\b(emi|loan|bajaj finserv|home loan|car loan|personal loan|hdb financial)\\b",
+      "priority": 90
+    },
+    {
+      "category": "Insurance",
+      "direction": "debit",
+      "regex": "\\b(insurance|lic|hdfc ergo|tata aia|max life|star health|icici lombard|policybazaar)\\b",
+      "priority": 88
+    },
+    {
+      "category": "Stocks",
+      "direction": "debit",
+      "regex": "\\b(zerodha|groww|upstox|angel one|sharekhan|motilal|icici direct|equity)\\b",
+      "priority": 85
+    },
+    {
+      "category": "Investments/Mutual Funds/SIP",
+      "direction": "debit",
+      "regex": "\\b(sip|mutual fund|mf|uti mf|nippon|sbi mf|hdfc mf|icici pru)\\b",
+      "priority": 85
+    },
+    {
+      "category": "ATM Withdrawal",
+      "direction": "debit",
+      "regex": "\\b(atm wdl|cash wdl|nfs.*cash|atm withdrawal|w/d)\\b",
+      "priority": 85
+    },
+    {
+      "category": "Bank Charges/Fees",
+      "direction": "debit",
+      "regex": "\\b(charges|annual fee|sms charges|chg|consolidated charges|folio|gst.*charges)\\b",
+      "priority": 85
+    },
+    {
+      "category": "Tax (GST/TDS/Income Tax)",
+      "direction": "debit",
+      "regex": "\\b(income tax|tds|gst|advance tax|challan|tin-nsdl)\\b",
+      "priority": 85
+    },
+    {
+      "category": "Donations/Charity",
+      "direction": "debit",
+      "regex": "\\b(relief fund|donation|charity|pmnrf|cm relief|akshaya patra|giveindia)\\b",
+      "priority": 85
+    },
+    {
+      "category": "Fuel",
+      "direction": "debit",
+      "regex": "\\b(petrol|diesel|fuel|hpcl|bpcl|iocl|indian oil|shell)\\b",
+      "priority": 80
+    },
+    {
+      "category": "Groceries",
+      "direction": "debit",
+      "regex": "\\b(blinkit|zepto|bigbasket|bbdaily|instamart|dmart|spencer|nature basket|groceries|supermarket)\\b",
+      "priority": 80
+    },
+    {
+      "category": "Food & Dining",
+      "direction": "debit",
+      "regex": "\\b(swiggy|zomato|mcdonalds|dominos|burger king|starbucks|cafe|restaurant|pizza|biryani|subway)\\b",
+      "priority": 80
+    },
+    {
+      "category": "Travel & Transport",
+      "direction": "debit",
+      "regex": "\\b(uber|ola|rapido|irctc|railway|makemytrip|goibibo|indigo|air india|fastag|toll)\\b",
+      "priority": 80
+    },
+    {
+      "category": "Mobile/Internet/DTH Recharge",
+      "direction": "debit",
+      "regex": "\\b(jio|airtel|vodafone|idea|vi recharge|tatasky|dth|broadband|act fibernet)\\b",
+      "priority": 80
+    },
+    {
+      "category": "Utilities & Bills",
+      "direction": "debit",
+      "regex": "\\b(electricity|bescom|tneb|mseb|torrent|torrent power|torrentpower|adani electricity|tata power|water bill|gas bill|piped gas|igl|mahanagar gas)\\b",
+      "priority": 88
+    },
+    {
+      "category": "Entertainment/Subscriptions",
+      "direction": "debit",
+      "regex": "\\b(netflix|spotify|hotstar|prime video|youtube|bookmyshow|pvr|inox|apple\\.com|playstation)\\b",
+      "priority": 80
+    },
+    {
+      "category": "Healthcare",
+      "direction": "debit",
+      "regex": "\\b(apollo|pharmeasy|1mg|medplus|hospital|clinic|doctor|pharmacy|diagnostic|dr lal)\\b",
+      "priority": 80
+    },
+    {
+      "category": "Education",
+      "direction": "debit",
+      "regex": "\\b(school|college|university|udemy|coursera|byjus|unacademy|tuition|exam fee)\\b",
+      "priority": 80
+    },
+    {
+      "category": "Shopping",
+      "direction": "debit",
+      "regex": "\\b(amazon|flipkart|myntra|ajio|zara|h&m|decathlon|retail|store|nykaa|croma|reliance digital)\\b",
+      "priority": 75
+    },
+    {
+      "category": "Wallet Top-up",
+      "direction": "debit",
+      "regex": "\\b(wallet|paytm wallet|mobikwik|amazon pay balance)\\b",
+      "priority": 75
+    },
+    {
+      "category": "Cheque",
+      "direction": "any",
+      "regex": "\\b(chq|cheque clearing|clg)\\b",
+      "priority": 70
+    },
+    {
+      "category": "Transfer Out (Person)",
+      "direction": "debit",
+      "regex": "\\b(transfer to|ft to|neft dr|sent to|upi/|paid to)\\b",
+      "priority": 60
+    }
+  ]
+}
