@@ -4,13 +4,18 @@ import os
 import shutil
 from typing import List, Dict, Any, Tuple, Optional
 import numpy as np
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None
 import pymupdf
 import pytesseract
 
 
 def is_tesseract_available() -> bool:
-    """Check if tesseract binary is accessible in PATH or common directories."""
+    """Check if tesseract binary and cv2 are accessible."""
+    if cv2 is None:
+        return False
     # Check PATH first
     if shutil.which("tesseract"):
         return True
