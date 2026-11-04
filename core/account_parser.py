@@ -55,20 +55,24 @@ def extract_account_details(text: str) -> AccountDetails:
     full_text = "\n".join(lines)
 
     # 1. IFSC
-    ifsc_match = re.search(r'\b([A-Z]{4}0[A-Z0-9]{6})\b', full_text)
+    ifsc_match = re.search(r'(?:IFSC|AFSC|1FSC)[\s.:©~-]*[a-z\s]{0,4}([A-Za-z0-9]{11})', full_text, re.IGNORECASE)
     if not ifsc_match:
-        ifsc_match = re.search(r'(?:IFSC|AFSC|1FSC)[\s.:©~-]*([A-Z0-9]{11})', full_text, re.IGNORECASE)
-    ifsc = ifsc_match.group(1) if ifsc_match else None
+        ifsc_match = re.search(r'\b([A-Z]{4}0[A-Z0-9]{6})\b', full_text)
+    ifsc = None
+    if ifsc_match:
+        val = ifsc_match.group(1).upper()
+        if val.startswith("0MOB"):
+            val = "DMOB" + val[4:]
+        ifsc = val
 
-    # 2. Bank Name
+    # 2. Bank Name (prioritize explicit bank name heading/keywords over transfer recipient IFSCs)
     bank_name = None
-    if ifsc and ifsc[:4] in BANK_IFSC_MAP:
+    for kw, bname in BANK_KEYWORDS:
+        if re.search(rf'\b{re.escape(kw)}\b', full_text, re.IGNORECASE):
+            bank_name = bname
+            break
+    if not bank_name and ifsc and ifsc[:4] in BANK_IFSC_MAP:
         bank_name = BANK_IFSC_MAP[ifsc[:4]]
-    if not bank_name:
-        for kw, bname in BANK_KEYWORDS:
-            if re.search(rf'\b{re.escape(kw)}\b', full_text, re.IGNORECASE):
-                bank_name = bname
-                break
     if not bank_name:
         bank_name = "Bank Account"
 
@@ -146,7 +150,7 @@ def extract_account_details(text: str) -> AccountDetails:
 
     # 9. Opening Balance
     open_bal_match = re.search(
-        r'(?:Opening\s*Balance|B/F\s*Balance|Balance\s*B/F)[^\d\n\r]*?([0-9][0-9,.;]*(?:\s*(?:Dr|Cr|DR|CR))?)',
+        r'(?:Opening\s*Balance|B/F\s*Balance|Balance\s*B/F)[\s\S]{0,45}?([0-9][0-9,.;]*(?:\s*(?:Dr|Cr|DR|CR))?)',
         full_text,
         re.IGNORECASE
     )
@@ -158,7 +162,7 @@ def extract_account_details(text: str) -> AccountDetails:
 
     # 10. Closing Balance
     close_bal_match = re.search(
-        r'(?:Closing\s*Balance|C/F\s*Balance|Balance\s*C/F)[^\d\n\r]*?([0-9][0-9,.;]*(?:\s*(?:Dr|Cr|DR|CR))?)',
+        r'(?:Closing\s*Balance|C/F\s*Balance|Balance\s*C/F)[\s\S]{0,45}?([0-9][0-9,.;]*(?:\s*(?:Dr|Cr|DR|CR))?)',
         full_text,
         re.IGNORECASE
     )
@@ -170,7 +174,7 @@ def extract_account_details(text: str) -> AccountDetails:
 
     # 11. Statement Summary Totals (Total Debits & Total Credits)
     tot_deb_match = re.search(
-        r'(?:Total\s*Debits?|Total\s*Withdrawals?)[^\d\n\r]*?([0-9][0-9,.;]*)',
+        r'(?:Total\s*Debits?|Total\s*Withdrawals?)[\s\S]{0,45}?([0-9][0-9,.;]*)',
         full_text,
         re.IGNORECASE
     )
@@ -181,7 +185,7 @@ def extract_account_details(text: str) -> AccountDetails:
         total_debits_reported = parsed_amt
 
     tot_cred_match = re.search(
-        r'(?:Total\s*Credits?|Total\s*Deposits?)[^\d\n\r]*?([0-9][0-9,.;]*)',
+        r'(?:Total\s*Credits?|Total\s*Deposits?)[\s\S]{0,45}?([0-9][0-9,.;]*)',
         full_text,
         re.IGNORECASE
     )

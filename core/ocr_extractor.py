@@ -83,8 +83,11 @@ def find_projection_deskew_angle(gray: np.ndarray, max_angle: float = 4.0) -> fl
 
 def preprocess_image_for_ocr(img_bgr: np.ndarray) -> np.ndarray:
     """
-    Apply orientation correction, deskew, sharpening, illumination flattening, and contrast enhancement.
+    Apply orientation correction, deskew, selective illumination flattening, and contrast enhancement.
     """
+    if cv2 is None:
+        return img_bgr
+
     # 1. Grayscale
     if len(img_bgr.shape) == 3:
         gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
@@ -127,29 +130,27 @@ def preprocess_image_for_ocr(img_bgr: np.ndarray) -> np.ndarray:
     except Exception:
         pass
 
-    # 4. Sharpening / Unsharp Mask (restores edge definition for phone photos & blur)
+    # 4. Selective Illumination Flattening (only for phone photos / uneven dark backgrounds)
     try:
-        gaussian = cv2.GaussianBlur(gray, (0, 0), 2.0)
-        gray = cv2.addWeighted(gray, 1.8, gaussian, -0.8, 0)
+        if gray.mean() < 185:
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (45, 45))
+            bg = cv2.morphologyEx(gray, cv2.MORPH_DILATE, kernel)
+            gray = cv2.divide(gray, bg, scale=255)
+            # Gentle unsharp mask for photo blur
+            gaussian = cv2.GaussianBlur(gray, (0, 0), 1.5)
+            gray = cv2.addWeighted(gray, 1.4, gaussian, -0.4, 0)
     except Exception:
         pass
 
-    # 5. Illumination flattening (removes shadow gradients from phone photos/uneven scans)
+    # 5. Clean linear contrast stretch (avoids CLAHE noise/ringing while clarifying faint text)
     try:
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (45, 45))
-        bg = cv2.morphologyEx(gray, cv2.MORPH_DILATE, kernel)
-        gray = cv2.divide(gray, bg, scale=255)
+        p2, p98 = np.percentile(gray, (2, 98))
+        if p98 - p2 > 20:
+            gray = np.clip((gray.astype(np.float32) - p2) * 255.0 / (p98 - p2), 0, 255).astype(np.uint8)
     except Exception:
         pass
 
-    # 6. Denoise and CLAHE contrast enhancement
-    try:
-        denoised = cv2.bilateralFilter(gray, 5, 30, 30)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        enhanced = clahe.apply(denoised)
-        return enhanced
-    except Exception:
-        return gray
+    return gray
 
 
 def extract_words_from_scanned_page(
