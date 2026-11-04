@@ -66,7 +66,7 @@ SKIP_ROW_PATTERNS = [
     re.compile(r'\b(total\s*debits|total\s*credits|statement\s*summary)\b', re.IGNORECASE),
     re.compile(r'\b(page \d+|statement generated on|computer generated)\b', re.IGNORECASE),
     re.compile(r'\b(customer\s*name|a/?c\s*no|aic\s*no|account\s*no|ifsc|branch\s*code|mailing\s*address|statement\s*period)\b', re.IGNORECASE),
-    re.compile(r'\b(co-operative\s*bank|bank\s*limited|national\s*bank|savings\s*account)\b', re.IGNORECASE),
+    re.compile(r'\b(account\s*type\s*:\s*savings\s*account|product\s*:\s*savings\s*account)\b', re.IGNORECASE),
 ]
 
 
@@ -98,6 +98,11 @@ def match_column_name(header_str: str) -> Optional[str]:
 
 def is_skip_row(row_text: str) -> bool:
     """Check if row is a brought forward, total, or footer line."""
+    if not row_text:
+        return True
+    # Never skip genuine interest credit or payment narrations that happen to contain keywords
+    if re.search(r'\b(int\.?pd|interest\s*credit|upi|neft|rtgs|imps)\b', row_text, re.IGNORECASE):
+        return False
     for p in SKIP_ROW_PATTERNS:
         if p.search(row_text):
             return True

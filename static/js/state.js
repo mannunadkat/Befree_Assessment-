@@ -30,6 +30,7 @@ class AppState {
         pageSize: 20,
         density: 'normal', // 'normal' | 'compact'
       },
+      selectedAccount: 'all',
       theme: localStorage.getItem('aurabank_theme') || 'dark'
     };
   }

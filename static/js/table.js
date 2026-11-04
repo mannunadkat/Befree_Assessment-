@@ -117,8 +117,9 @@ export function initTable() {
   if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeDrawer);
   if (drawerBackdrop) drawerBackdrop.addEventListener('click', closeDrawer);
 
-  // Subscribe to result changes
+  // Subscribe to result changes and account filter changes
   state.subscribe('result', () => renderTable());
+  state.subscribe('selectedAccount', () => renderTable());
 
   // If result already loaded in state, render immediately
   if (state.get('result')) {
@@ -171,6 +172,10 @@ export function renderTable() {
     if (filters.category && t.category !== filters.category) return false;
     if (filters.payment_mode && t.payment_mode !== filters.payment_mode) return false;
     if (filters.validation_status && t.validation_status !== filters.validation_status) return false;
+    const selectedAcc = state.get('selectedAccount');
+    if (selectedAcc && selectedAcc !== 'all') {
+      if (t.account_number !== selectedAcc && t.bank_name !== selectedAcc) return false;
+    }
     return true;
   });
 

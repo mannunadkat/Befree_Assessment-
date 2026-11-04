@@ -43,6 +43,8 @@ class Transaction(BaseModel):
     validation_note: Optional[str] = None
     source_file: str = ""
     page: int = 1
+    account_number: Optional[str] = None
+    bank_name: Optional[str] = None
     bbox: Optional[List[float]] = None  # [x0, top, x1, bottom]
     ocr_confidence: Optional[float] = None
     raw_amount: Optional[str] = None
@@ -109,6 +111,9 @@ class ProcessingSettings(BaseModel):
 
 class ProcessingResult(BaseModel):
     account: AccountDetails
+    accounts: List[AccountDetails] = Field(default_factory=list)
     transactions: List[Transaction]
     validation: ValidationReport
+    account_validations: Dict[str, ValidationReport] = Field(default_factory=dict)
     analytics: Dict[str, Any] = Field(default_factory=dict)
+    account_analytics: Dict[str, Any] = Field(default_factory=dict)

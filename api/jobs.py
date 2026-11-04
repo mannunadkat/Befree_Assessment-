@@ -3,7 +3,7 @@
 import os
 import uuid
 import asyncio
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from collections import defaultdict
 from core.models import (
     JobStatus, JobFileStatus, ProcessingSettings, ProcessingResult,
@@ -234,6 +234,8 @@ async def process_job_pipeline(job_id: str):
 
         all_transactions: List[Transaction] = []
         combined_account: Optional[AccountDetails] = None
+        all_detected_accounts: List[AccountDetails] = []
+        account_page_map: Dict[Tuple[str, int], AccountDetails] = {}
         total_pages_all_files = 0
         overall_doc_type = "text"
 
@@ -354,8 +356,20 @@ async def process_job_pipeline(job_id: str):
             account_info.pdf_type = f_status.detected_type
             account_info.page_types = f_status.page_types
 
+            from core.account_parser import extract_all_accounts_from_pdf
+            file_accts = extract_all_accounts_from_pdf(f_path, password=pwd)
+            if file_accts and len(file_accts) > 1:
+                for a_info, a_pages in file_accts:
+                    all_detected_accounts.append(a_info)
+                    for p in a_pages:
+                        account_page_map[(f_name, p)] = a_info
+            else:
+                all_detected_accounts.append(account_info)
+                for p in range(1, f_status.pages + 1):
+                    account_page_map[(f_name, p)] = account_info
+
             if combined_account is None:
-                combined_account = account_info
+                combined_account = all_detected_accounts[0] if all_detected_accounts else account_info
 
             # Page by page extraction
             saved_boundaries = None
@@ -391,6 +405,10 @@ async def process_job_pipeline(job_id: str):
                 for tx in txns_page:
                     tx.source_file = f_name
                     tx.page = p_num
+                    acct_for_page = account_page_map.get((f_name, p_num))
+                    if acct_for_page:
+                        tx.account_number = acct_for_page.account_number or acct_for_page.masked_account_number
+                        tx.bank_name = acct_for_page.bank_name
 
                 all_transactions.extend(txns_page)
                 # Small yield for smooth SSE streaming
@@ -419,13 +437,49 @@ async def process_job_pipeline(job_id: str):
         })
         await asyncio.sleep(0.05)
 
-        validated_txns, validation_report = reconcile_and_repair_transactions(
-            all_transactions,
-            opening_balance=combined_account.opening_balance if combined_account else None,
-            closing_balance=combined_account.closing_balance if combined_account else None,
-            total_debits_reported=combined_account.total_debits_reported if combined_account else None,
-            total_credits_reported=combined_account.total_credits_reported if combined_account else None
-        )
+        account_validations: Dict[str, ValidationReport] = {}
+        account_analytics: Dict[str, Any] = {}
+
+        if len(all_detected_accounts) > 1:
+            validated_txns = []
+            for acct in all_detected_accounts:
+                acc_key = acct.masked_account_number or acct.account_number or acct.bank_name or "default"
+                acct_txns = [t for t in all_transactions if (t.account_number == acct.account_number or t.account_number == acct.masked_account_number)]
+                if not acct_txns:
+                    # fallback to match by account bank name if account number absent
+                    acct_txns = [t for t in all_transactions if t.bank_name == acct.bank_name]
+                if not acct_txns:
+                    continue
+                v_txs, v_rep = reconcile_and_repair_transactions(
+                    acct_txns,
+                    opening_balance=acct.opening_balance,
+                    closing_balance=acct.closing_balance,
+                    total_debits_reported=acct.total_debits_reported,
+                    total_credits_reported=acct.total_credits_reported
+                )
+                validated_txns.extend(v_txs)
+                account_validations[acc_key] = v_rep
+                account_analytics[acc_key] = compute_analytics(v_txs, acct)
+
+            _, validation_report = reconcile_and_repair_transactions(
+                validated_txns,
+                opening_balance=combined_account.opening_balance if combined_account else None,
+                closing_balance=combined_account.closing_balance if combined_account else None,
+                total_debits_reported=combined_account.total_debits_reported if combined_account else None,
+                total_credits_reported=combined_account.total_credits_reported if combined_account else None
+            )
+            # If each sub-account is reconciled, mark overall as reconciled
+            if all(rep.is_reconciled for rep in account_validations.values()):
+                validation_report.is_reconciled = True
+                validation_report.discrepancy = 0.0
+        else:
+            validated_txns, validation_report = reconcile_and_repair_transactions(
+                all_transactions,
+                opening_balance=combined_account.opening_balance if combined_account else None,
+                closing_balance=combined_account.closing_balance if combined_account else None,
+                total_debits_reported=combined_account.total_debits_reported if combined_account else None,
+                total_credits_reported=combined_account.total_credits_reported if combined_account else None
+            )
 
         # Step 5: Classification Engine (Rules + ML)
         await emit_job_event(job_id, {
@@ -451,9 +505,12 @@ async def process_job_pipeline(job_id: str):
         # Build final ProcessingResult
         result = ProcessingResult(
             account=combined_account or AccountDetails(),
+            accounts=all_detected_accounts if all_detected_accounts else ([combined_account] if combined_account else []),
             transactions=validated_txns,
             validation=validation_report,
-            analytics=analytics
+            account_validations=account_validations,
+            analytics=analytics,
+            account_analytics=account_analytics
         )
         job["result"] = result
 

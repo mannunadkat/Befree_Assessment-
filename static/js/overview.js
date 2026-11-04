@@ -4,20 +4,81 @@
  */
 import { state } from './state.js';
 
+let currentSelectedAccountIndex = 0;
+
 export function initOverview() {
   state.subscribe('result', (result) => {
-    if (result) renderOverview(result);
+    if (result) {
+      currentSelectedAccountIndex = 0;
+      renderOverview(result);
+    }
   });
 
   initCardParallax();
 }
 
+function renderAccountSelector(result) {
+  const container = document.getElementById('overview-accounts-container');
+  if (!container) return;
+
+  const accounts = result.accounts || [];
+  if (accounts.length <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px; background:linear-gradient(90deg, rgba(99,102,241,0.08) 0%, rgba(168,85,247,0.08) 100%); border:1px solid rgba(168,85,247,0.25); border-radius:var(--radius-lg); margin-bottom:12px;">
+      <span style="font-size:var(--text-xs); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--color-primary); display:flex; align-items:center; gap:6px;">
+        <i data-lucide="layers" style="width:14px; height:14px;"></i> Multi-Account Statement (${accounts.length} Accounts Found):
+      </span>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        ${accounts.map((acc, idx) => `
+          <button class="account-tab-btn" data-idx="${idx}" style="font-size:var(--text-xs); font-weight:600; padding:6px 14px; border-radius:var(--radius-full); cursor:pointer; transition:all 0.2s ease; ${idx === currentSelectedAccountIndex ? 'background:linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color:white; border:none; box-shadow:0 2px 8px rgba(99,102,241,0.4);' : 'background:rgba(255,255,255,0.05); color:var(--color-text-secondary); border:1px solid var(--color-border);'}">
+            ${acc.bank_name || 'Account ' + (idx + 1)} (${acc.masked_account_number || '••••' + (acc.account_number || '').slice(-4)})
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+
+  container.querySelectorAll('.account-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      currentSelectedAccountIndex = idx;
+      const acc = accounts[idx];
+      if (acc) {
+        state.set('selectedAccount', acc.masked_account_number || acc.account_number || acc.bank_name || 'all');
+      }
+      renderOverview(result);
+    });
+  });
+}
+
 function renderOverview(result) {
-  const account = result.account || {};
-  const validation = result.validation || {};
-  const analytics = result.analytics || {};
+  const accounts = result.accounts || [];
+  renderAccountSelector(result);
+
+  let account = result.account || {};
+  let validation = result.validation || {};
+  let analytics = result.analytics || {};
+  let txns = result.transactions || [];
+
+  if (accounts.length > 1 && accounts[currentSelectedAccountIndex]) {
+    account = accounts[currentSelectedAccountIndex];
+    const accKey = account.masked_account_number || account.account_number || account.bank_name || "default";
+    if (result.account_validations && result.account_validations[accKey]) {
+      validation = result.account_validations[accKey];
+    }
+    if (result.account_analytics && result.account_analytics[accKey]) {
+      analytics = result.account_analytics[accKey];
+    }
+    txns = txns.filter(t => t.account_number === account.account_number || t.account_number === account.masked_account_number || t.bank_name === account.bank_name);
+  }
+
   const kpis = analytics.kpis || {};
-  const txns = result.transactions || [];
 
   // 1. Reconciliation Banner
   renderReconciliationBanner(validation);

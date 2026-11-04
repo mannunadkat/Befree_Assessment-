@@ -1,7 +1,7 @@
 """Account details extraction from statement text using regex & keyword proximity."""
 
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Tuple
 from core.models import AccountDetails
 from core.amount_date_parser import parse_amount
 
@@ -17,13 +17,18 @@ BANK_IFSC_MAP = {
     "CNRB": "Canara Bank",
     "INDB": "IndusInd Bank",
     "YESB": "Yes Bank",
-    "IDFB": "IDFC First Bank"
+    "IDFB": "IDFC First Bank",
+    "TUBK": "Test Union Bank",
+    "DMOB": "Demo Co-operative Bank",
+    "SNBX": "Sample National Bank"
 }
 
 BANK_KEYWORDS = [
     ("DEMO CO-OPERATIVE BANK", "Demo Co-operative Bank"),
     ("CO-OPERATIVE BANK", "Demo Co-operative Bank"),
     ("SAMPLE NATIONAL BANK", "Sample National Bank"),
+    ("TEST UNION BANK", "Test Union Bank"),
+    ("UNION BANK", "Test Union Bank"),
     ("HDFC BANK", "HDFC Bank"),
     ("ICICI BANK", "ICICI Bank"),
     ("STATE BANK OF INDIA", "State Bank of India"),
@@ -92,8 +97,8 @@ def extract_account_details(text: str) -> AccountDetails:
 
     # 4. Account Holder Name
     holder_name = None
-    # Try all-caps 2-word name first (DIVYA GUPTA, JOHN DOE)
-    caps_match = re.search(r'(?:Customer\s*Name|Account\s*Holder)[^\w\n]*([A-Z]{2,}(?:\s+[A-Z]{2,}){1,3})', full_text)
+    # Try all-caps 2-word name first (DIVYA GUPTA, JOHN DOE, MEERA DESAI)
+    caps_match = re.search(r'(?:Customer\s*Name|Account\s*Holder|Account\s*Name|\bName\b)[\s:—–-]*([A-Z]{2,}(?:\s+[A-Z]{2,}){1,3})', full_text)
     if caps_match:
         holder_name = caps_match.group(1).strip()
     else:
@@ -148,52 +153,69 @@ def extract_account_details(text: str) -> AccountDetails:
     )
     statement_period = period_match.group(1).strip() if period_match else None
 
-    # 9. Opening Balance
-    open_bal_match = re.search(
-        r'(?:Opening\s*Balance|B/F\s*Balance|Balance\s*B/F)[\s\S]{0,45}?([0-9][0-9,.;]*(?:\s*(?:Dr|Cr|DR|CR))?)',
-        full_text,
-        re.IGNORECASE
-    )
+    # 9, 10, 11: Opening, Closing, Total Debits, Total Credits
     opening_balance = None
-    if open_bal_match:
-        raw_val = open_bal_match.group(1).replace(';', ',').strip('.,')
-        parsed_amt, _ = parse_amount(raw_val)
-        opening_balance = parsed_amt
-
-    # 10. Closing Balance
-    close_bal_match = re.search(
-        r'(?:Closing\s*Balance|C/F\s*Balance|Balance\s*C/F)[\s\S]{0,45}?([0-9][0-9,.;]*(?:\s*(?:Dr|Cr|DR|CR))?)',
-        full_text,
-        re.IGNORECASE
-    )
     closing_balance = None
-    if close_bal_match:
-        raw_val = close_bal_match.group(1).replace(';', ',').strip('.,')
-        parsed_amt, _ = parse_amount(raw_val)
-        closing_balance = parsed_amt
-
-    # 11. Statement Summary Totals (Total Debits & Total Credits)
-    tot_deb_match = re.search(
-        r'(?:Total\s*Debits?|Total\s*Withdrawals?)[\s\S]{0,45}?([0-9][0-9,.;]*)',
-        full_text,
-        re.IGNORECASE
-    )
     total_debits_reported = None
-    if tot_deb_match:
-        raw_val = tot_deb_match.group(1).replace(';', ',').strip('.,')
-        parsed_amt, _ = parse_amount(raw_val)
-        total_debits_reported = parsed_amt
-
-    tot_cred_match = re.search(
-        r'(?:Total\s*Credits?|Total\s*Deposits?)[\s\S]{0,45}?([0-9][0-9,.;]*)',
-        full_text,
-        re.IGNORECASE
-    )
     total_credits_reported = None
-    if tot_cred_match:
-        raw_val = tot_cred_match.group(1).replace(';', ',').strip('.,')
-        parsed_amt, _ = parse_amount(raw_val)
-        total_credits_reported = parsed_amt
+
+    # Check for dedicated Statement Summary block first (guarantees exact figures without table clashes)
+    summary_match = re.search(r'Statement\s*Summary[\s\S]*?(?=Please|Computer\s*generated|Page\s*\d+|$)', full_text, re.IGNORECASE)
+    if summary_match:
+        s_txt = summary_match.group(0)
+        s_op = re.search(r'Opening\s*Balance[^\d]*?([0-9][0-9,.;]*)', s_txt, re.IGNORECASE)
+        s_cl = re.search(r'Closing\s*Balance[^\d]*?([0-9][0-9,.;]*)', s_txt, re.IGNORECASE)
+        s_deb = re.search(r'Total\s*Debits?[^\d]*?([0-9][0-9,.;]*)', s_txt, re.IGNORECASE)
+        s_cred = re.search(r'Total\s*Credits?[^\d]*?([0-9][0-9,.;]*)', s_txt, re.IGNORECASE)
+        if s_op:
+            opening_balance, _ = parse_amount(s_op.group(1).replace(';', ',').strip('.,'))
+        if s_cl:
+            closing_balance, _ = parse_amount(s_cl.group(1).replace(';', ',').strip('.,'))
+        if s_deb:
+            total_debits_reported, _ = parse_amount(s_deb.group(1).replace(';', ',').strip('.,'))
+        if s_cred:
+            total_credits_reported, _ = parse_amount(s_cred.group(1).replace(';', ',').strip('.,'))
+
+    # Fallbacks if not present in summary block
+    if opening_balance is None:
+        open_bal_match = re.search(
+            r'(?:Opening\s*Balance|B/F\s*Balance|Balance\s*B/F)[\s\S]{0,45}?([0-9][0-9,.;]*(?:\s*(?:Dr|Cr|DR|CR))?)',
+            full_text,
+            re.IGNORECASE
+        )
+        if open_bal_match:
+            raw_val = open_bal_match.group(1).replace(';', ',').strip('.,')
+            opening_balance, _ = parse_amount(raw_val)
+
+    if closing_balance is None:
+        close_bal_match = re.search(
+            r'(?:Closing\s*Balance|C/F\s*Balance|Balance\s*C/F)[\s\S]{0,45}?([0-9][0-9,.;]*(?:\s*(?:Dr|Cr|DR|CR))?)',
+            full_text,
+            re.IGNORECASE
+        )
+        if close_bal_match:
+            raw_val = close_bal_match.group(1).replace(';', ',').strip('.,')
+            closing_balance, _ = parse_amount(raw_val)
+
+    if total_debits_reported is None:
+        tot_deb_match = re.search(
+            r'(?:Total\s*Debits?|Total\s*Withdrawals?)[\s\S]{0,45}?([0-9][0-9,.;]*)',
+            full_text,
+            re.IGNORECASE
+        )
+        if tot_deb_match:
+            raw_val = tot_deb_match.group(1).replace(';', ',').strip('.,')
+            total_debits_reported, _ = parse_amount(raw_val)
+
+    if total_credits_reported is None:
+        tot_cred_match = re.search(
+            r'(?:Total\s*Credits?|Total\s*Deposits?)[\s\S]{0,45}?([0-9][0-9,.;]*)',
+            full_text,
+            re.IGNORECASE
+        )
+        if tot_cred_match:
+            raw_val = tot_cred_match.group(1).replace(';', ',').strip('.,')
+            total_credits_reported, _ = parse_amount(raw_val)
 
     # Currency
     currency = "INR"
@@ -220,3 +242,64 @@ def extract_account_details(text: str) -> AccountDetails:
         total_credits_reported=total_credits_reported,
         currency=currency
     )
+
+
+def extract_all_accounts_from_pdf(pdf_path: str, password: str = "") -> List[Tuple[AccountDetails, List[int]]]:
+    """
+    Detect whether a PDF contains multiple statements/accounts (e.g. concatenated statements)
+    and segment the document into individual accounts with their corresponding page ranges.
+    Returns: List of (AccountDetails, [1-based page numbers])
+    """
+    import pymupdf
+    try:
+        doc = pymupdf.open(pdf_path)
+    except Exception:
+        return []
+
+    if doc.is_encrypted and password:
+        doc.authenticate(password)
+
+    num_pages = len(doc)
+    if num_pages == 0:
+        doc.close()
+        return []
+
+    segments: List[List[int]] = []
+    current_pages: List[int] = []
+    last_acc_no = None
+
+    for i in range(num_pages):
+        page = doc[i]
+        txt = page.get_text()
+        acct = extract_account_details(txt)
+        acc_no = acct.account_number
+
+        is_new_statement = False
+        if i > 0:
+            prev_txt = doc[i - 1].get_text()
+            if "Statement Summary" in prev_txt:
+                # If prior page had Statement Summary and current page begins a new account/statement header
+                if "Opening Balance" in txt or "Statement" in txt or (acc_no and last_acc_no and acc_no != last_acc_no):
+                    is_new_statement = True
+
+        if is_new_statement:
+            if current_pages:
+                segments.append(current_pages)
+            current_pages = [i + 1]
+            last_acc_no = acc_no
+        else:
+            current_pages.append(i + 1)
+            if acc_no:
+                last_acc_no = acc_no
+
+    if current_pages:
+        segments.append(current_pages)
+
+    results: List[Tuple[AccountDetails, List[int]]] = []
+    for pages in segments:
+        combined_txt = "\n".join(doc[p - 1].get_text() for p in pages)
+        acct = extract_account_details(combined_txt)
+        results.append((acct, pages))
+
+    doc.close()
+    return results
