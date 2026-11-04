@@ -11,12 +11,18 @@ from core.ocr_extractor import is_tesseract_available
 
 
 # Configure application logging
-os.makedirs("logs", exist_ok=True)
-logging.basicConfig(
-    filename="logs/app.log",
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+try:
+    os.makedirs("logs", exist_ok=True)
+    logging.basicConfig(
+        filename="logs/app.log",
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
+except OSError:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
 logger = logging.getLogger("bank_statement_app")
 
 app = FastAPI(

@@ -25,7 +25,11 @@ router = APIRouter(prefix="/api")
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "uploads")
 SAMPLES_DIR = os.path.join(os.path.dirname(__file__), "..", "samples")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except OSError:
+    UPLOAD_DIR = "/tmp/uploads"
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 class OverrideRequest(BaseModel):
