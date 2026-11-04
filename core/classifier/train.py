@@ -2,20 +2,7 @@
 
 import os
 import re
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, accuracy_score
 import joblib
-
-
-BASE_DIR = os.path.dirname(__file__)
-DATA_PATH = os.path.join(BASE_DIR, "training_data.csv")
-TEST_CASES_DATA_PATH = os.path.join(BASE_DIR, "..", "..", "test cases", "classification_data", "classification_train_labeled.csv")
-MODEL_PATH = os.path.join(BASE_DIR, "model.joblib")
-OVERRIDES_PATH = os.path.join(BASE_DIR, "..", "..", "data", "user_overrides.csv")
 
 
 def preprocess_text(text: str) -> str:
@@ -27,7 +14,20 @@ def preprocess_text(text: str) -> str:
     return s
 
 
+BASE_DIR = os.path.dirname(__file__)
+DATA_PATH = os.path.join(BASE_DIR, "training_data.csv")
+TEST_CASES_DATA_PATH = os.path.join(BASE_DIR, "..", "..", "test cases", "classification_data", "classification_train_labeled.csv")
+MODEL_PATH = os.path.join(BASE_DIR, "model.joblib")
+OVERRIDES_PATH = os.path.join(BASE_DIR, "..", "..", "data", "user_overrides.csv")
+
+
 def train_model():
+    import pandas as pd
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import Pipeline, FeatureUnion
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import classification_report, accuracy_score
     print("Loading training datasets...")
     dfs = []
     if os.path.exists(DATA_PATH):
