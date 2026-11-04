@@ -12,14 +12,38 @@ import pymupdf
 import pytesseract
 
 
+def get_tessdata_path() -> Optional[str]:
+    """Return directory containing eng.traineddata if available."""
+    # 1. Environment variable
+    env_p = os.environ.get("TESSDATA_PREFIX")
+    if env_p and os.path.exists(os.path.join(env_p, "eng.traineddata")):
+        return env_p
+    # 2. Local project tessdata directory
+    proj_tess = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tessdata"))
+    if os.path.exists(os.path.join(proj_tess, "eng.traineddata")):
+        return proj_tess
+    # 3. System common directories
+    for sp in [
+        "/opt/homebrew/share/tessdata",
+        "/usr/local/share/tessdata",
+        "/usr/share/tesseract-ocr/4.00/tessdata",
+        "/usr/share/tesseract-ocr/5/tessdata",
+        "/usr/share/tessdata"
+    ]:
+        if os.path.exists(os.path.join(sp, "eng.traineddata")):
+            return sp
+    return None
+
+
 def is_tesseract_available() -> bool:
-    """Check if tesseract binary and cv2 are accessible."""
-    if cv2 is None:
-        return False
-    # Check PATH first
+    """Check if tesseract binary, PyMuPDF OCR tessdata, or cv2 are accessible."""
+    # PyMuPDF built-in OCR is available if tessdata exists
+    if get_tessdata_path() is not None:
+        return True
+    # Check PATH
     if shutil.which("tesseract"):
         return True
-    # Common macOS / Linux paths
+    # Common macOS / Linux / Windows paths
     common_paths = [
         "/opt/homebrew/bin/tesseract",
         "/usr/local/bin/tesseract",
@@ -153,6 +177,40 @@ def preprocess_image_for_ocr(img_bgr: np.ndarray) -> np.ndarray:
     return gray
 
 
+def extract_words_via_pymupdf_ocr(
+    pdf_path: str,
+    page_number: int,
+    dpi: int = 200,
+    password: str = ""
+) -> Tuple[List[Dict[str, Any]], float]:
+    """Fallback OCR engine using PyMuPDF's built-in MuPDF/Tesseract C-API and bundled tessdata."""
+    tess_dir = get_tessdata_path()
+    try:
+        doc = pymupdf.open(pdf_path)
+        if doc.is_encrypted and password:
+            doc.authenticate(password)
+        page = doc[page_number - 1]
+        kw = {"dpi": dpi, "full": True}
+        if tess_dir:
+            kw["tessdata"] = tess_dir
+            kw["language"] = "eng"
+        tp = page.get_textpage_ocr(**kw)
+        raw_words = tp.extractWORDS()
+        words_data = [{
+            "text": w[4],
+            "x0": float(w[0]),
+            "top": float(w[1]),
+            "x1": float(w[2]),
+            "bottom": float(w[3]),
+            "confidence": 0.95
+        } for w in raw_words if w[4].strip()]
+        doc.close()
+        return words_data, 0.95
+    except Exception as e:
+        print(f"PyMuPDF built-in OCR exception on page {page_number}: {e}")
+        return [], 0.0
+
+
 def extract_words_from_scanned_page(
     pdf_path: str,
     page_number: int,
@@ -161,86 +219,93 @@ def extract_words_from_scanned_page(
 ) -> Tuple[List[Dict[str, Any]], float]:
     """
     Render PDF page to high-res image, preprocess, and run Tesseract image_to_data.
-    Returns:
-    (words_list, average_page_confidence)
-    where words_list has elements: {"text", "x0", "top", "x1", "bottom", "confidence"}
-    Coordinates are scaled back to 72 DPI PDF point coordinates for consistency.
+    Falls back to PyMuPDF built-in OCR engine if Tesseract CLI is unavailable.
     """
     if not is_tesseract_available():
         return [], 0.0
 
-    doc = pymupdf.open(pdf_path)
-    if doc.is_encrypted and password:
-        doc.authenticate(password)
+    # 1. Try pytesseract CLI path if cv2 and pytesseract are working
+    if cv2 is not None:
+        try:
+            doc = pymupdf.open(pdf_path)
+            if doc.is_encrypted and password:
+                doc.authenticate(password)
 
-    page = doc[page_number - 1]
-    scale = dpi / 72.0
-    mat = pymupdf.Matrix(scale, scale)
-    pix = page.get_pixmap(matrix=mat)
-    img_np = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
-    if pix.n == 4:
-        img_np = cv2.cvtColor(img_np, cv2.COLOR_RGBA2BGR)
-    elif pix.n == 1:
-        img_np = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)
+            page = doc[page_number - 1]
+            scale = dpi / 72.0
+            mat = pymupdf.Matrix(scale, scale)
+            pix = page.get_pixmap(matrix=mat)
+            img_np = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
+            if pix.n == 4:
+                img_np = cv2.cvtColor(img_np, cv2.COLOR_RGBA2BGR)
+            elif pix.n == 1:
+                img_np = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)
 
-    doc.close()
+            doc.close()
 
-    preprocessed = preprocess_image_for_ocr(img_np)
+            preprocessed = preprocess_image_for_ocr(img_np)
 
-    # Run tesseract image_to_data (PSM 6 handles multi-column tabular data robustly)
-    ocr_data = pytesseract.image_to_data(
-        preprocessed,
-        output_type=pytesseract.Output.DICT,
-        config="--oem 3 --psm 6"
-    )
+            # Run tesseract image_to_data (PSM 6 handles multi-column tabular data robustly)
+            ocr_data = pytesseract.image_to_data(
+                preprocessed,
+                output_type=pytesseract.Output.DICT,
+                config="--oem 3 --psm 6"
+            )
 
-    non_empty = [t for t in ocr_data['text'] if t.strip()]
-    non_empty_lower = [t.lower().strip(".,;:|") for t in non_empty]
-    has_money_header = any(k in non_empty_lower for k in ["debit", "withdrawal", "withdrawals"]) and \
-                       any(k in non_empty_lower for k in ["credit", "deposit", "deposits", "balance"])
+            non_empty = [t for t in ocr_data['text'] if t.strip()]
+            non_empty_lower = [t.lower().strip(".,;:|") for t in non_empty]
+            has_money_header = any(k in non_empty_lower for k in ["debit", "withdrawal", "withdrawals"]) and \
+                               any(k in non_empty_lower for k in ["credit", "deposit", "deposits", "balance"])
 
-    # Fall back to PSM 3 if PSM 6 missed the table header or has low word yield
-    if not has_money_header or len(non_empty) < 40:
-        alt_data = pytesseract.image_to_data(
-            preprocessed,
-            output_type=pytesseract.Output.DICT,
-            config="--oem 3 --psm 3"
-        )
-        alt_non_empty = [t for t in alt_data['text'] if t.strip()]
-        alt_non_empty_lower = [t.lower().strip(".,;:|") for t in alt_non_empty]
-        alt_has_money_header = any(k in alt_non_empty_lower for k in ["debit", "withdrawal", "withdrawals"]) and \
-                               any(k in alt_non_empty_lower for k in ["credit", "deposit", "deposits", "balance"])
+            # Fall back to PSM 3 if PSM 6 missed the table header or has low word yield
+            if not has_money_header or len(non_empty) < 40:
+                alt_data = pytesseract.image_to_data(
+                    preprocessed,
+                    output_type=pytesseract.Output.DICT,
+                    config="--oem 3 --psm 3"
+                )
+                alt_non_empty = [t for t in alt_data['text'] if t.strip()]
+                alt_non_empty_lower = [t.lower().strip(".,;:|") for t in alt_non_empty]
+                alt_has_money_header = any(k in alt_non_empty_lower for k in ["debit", "withdrawal", "withdrawals"]) and \
+                                       any(k in alt_non_empty_lower for k in ["credit", "deposit", "deposits", "balance"])
 
-        if alt_has_money_header or len(alt_non_empty) > len(non_empty):
-            ocr_data = alt_data
+                if alt_has_money_header or len(alt_non_empty) > len(non_empty):
+                    ocr_data = alt_data
 
-    words_data: List[Dict[str, Any]] = []
-    conf_sum = 0.0
-    conf_count = 0
+            words_data: List[Dict[str, Any]] = []
+            conf_sum = 0.0
+            conf_count = 0
 
-    n_boxes = len(ocr_data['text'])
-    for i in range(n_boxes):
-        text = ocr_data['text'][i].strip()
-        conf = float(ocr_data['conf'][i])
-        if not text or conf < 0:
-            continue
+            n_boxes = len(ocr_data['text'])
+            for i in range(n_boxes):
+                text = ocr_data['text'][i].strip()
+                conf = float(ocr_data['conf'][i])
+                if not text or conf < 0:
+                    continue
 
-        # Convert image pixel coords back to 72 DPI PDF points
-        x = float(ocr_data['left'][i]) / scale
-        y = float(ocr_data['top'][i]) / scale
-        w = float(ocr_data['width'][i]) / scale
-        h = float(ocr_data['height'][i]) / scale
+                # Convert image pixel coords back to 72 DPI PDF points
+                x = float(ocr_data['left'][i]) / scale
+                y = float(ocr_data['top'][i]) / scale
+                w = float(ocr_data['width'][i]) / scale
+                h = float(ocr_data['height'][i]) / scale
 
-        words_data.append({
-            "text": text,
-            "x0": x,
-            "top": y,
-            "x1": x + w,
-            "bottom": y + h,
-            "confidence": conf / 100.0
-        })
-        conf_sum += conf
-        conf_count += 1
+                words_data.append({
+                    "text": text,
+                    "x0": x,
+                    "top": y,
+                    "x1": x + w,
+                    "bottom": y + h,
+                    "confidence": conf / 100.0
+                })
+                conf_sum += conf
+                conf_count += 1
 
-    avg_conf = (conf_sum / (conf_count * 100.0)) if conf_count > 0 else 0.0
-    return words_data, avg_conf
+            if words_data:
+                avg_conf = (conf_sum / (conf_count * 100.0)) if conf_count > 0 else 0.0
+                return words_data, avg_conf
+        except Exception as e:
+            # Pytesseract CLI failed (e.g. serverless without system binary)
+            pass
+
+    # 2. PyMuPDF built-in OCR fallback (uses MuPDF engine + bundled tessdata)
+    return extract_words_via_pymupdf_ocr(pdf_path, page_number, dpi=dpi, password=password)

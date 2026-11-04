@@ -337,18 +337,30 @@ async def process_job_pipeline(job_id: str):
             f_status.status = "extracting"
             full_text = extract_full_text(f_path, password=pwd)
 
-            # If document is scanned or text is empty, extract OCR text from page 1 and the last page
+            # If document is scanned or hybrid, extract clean OCR text from scanned pages for header / statement summary
             if not full_text.strip() or f_status.detected_type in ["scanned", "hybrid"]:
                 try:
-                    from core.ocr_extractor import is_tesseract_available
+                    import pymupdf
+                    from core.ocr_extractor import is_tesseract_available, get_tessdata_path
                     if is_tesseract_available():
-                        from core.ocr_extractor import extract_words_from_scanned_page
-                        p1_words, _ = extract_words_from_scanned_page(f_path, 1, dpi=settings.ocr_dpi, password=pwd)
-                        ocr_blobs = [" ".join(w["text"] for w in p1_words)]
-                        if f_status.pages > 1:
-                            pn_words, _ = extract_words_from_scanned_page(f_path, f_status.pages, dpi=settings.ocr_dpi, password=pwd)
-                            ocr_blobs.append(" ".join(w["text"] for w in pn_words))
-                        full_text = (full_text + "\n" + "\n".join(ocr_blobs)).strip()
+                        doc_temp = pymupdf.open(f_path)
+                        if doc_temp.is_encrypted and pwd:
+                            doc_temp.authenticate(pwd)
+                        tess_dir = get_tessdata_path()
+                        ocr_blobs = []
+                        # If page 1 is scanned or text is completely empty, OCR page 1
+                        if f_status.page_types.get(1) == "scanned" or not full_text.strip():
+                            p1 = doc_temp[0]
+                            tp1 = p1.get_textpage_ocr(tessdata=tess_dir, dpi=200, full=True) if tess_dir else p1.get_textpage_ocr(dpi=200, full=True)
+                            ocr_blobs.append(tp1.extractTEXT())
+                        # If last page is scanned, OCR last page for Statement Summary
+                        if f_status.pages > 1 and f_status.page_types.get(f_status.pages) == "scanned":
+                            pn = doc_temp[f_status.pages - 1]
+                            tpn = pn.get_textpage_ocr(tessdata=tess_dir, dpi=200, full=True) if tess_dir else pn.get_textpage_ocr(dpi=200, full=True)
+                            ocr_blobs.append(tpn.extractTEXT())
+                        doc_temp.close()
+                        if ocr_blobs:
+                            full_text = (full_text + "\n" + "\n".join(ocr_blobs)).strip()
                 except Exception as e:
                     print(f"Warning: OCR header text extraction failed: {e}")
 
