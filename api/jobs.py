@@ -510,6 +510,11 @@ async def process_job_pipeline(job_id: str):
 
         # Step 6: Compute Analytics Aggregates
         analytics = compute_analytics(validated_txns, combined_account)
+        if all_detected_accounts and len(all_detected_accounts) > 1:
+            for acct in all_detected_accounts:
+                acc_key = acct.masked_account_number or acct.account_number or acct.bank_name or "default"
+                sub_txs = [t for t in validated_txns if (t.account_number and t.account_number in [acct.account_number, acct.masked_account_number]) or (t.bank_name and t.bank_name == acct.bank_name)]
+                account_analytics[acc_key] = compute_analytics(sub_txs, acct)
 
         if combined_account:
             combined_account.pdf_type = overall_doc_type

@@ -28,16 +28,64 @@ function renderAccountSelector(result) {
   }
 
   container.innerHTML = `
-    <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px; background:linear-gradient(90deg, rgba(99,102,241,0.08) 0%, rgba(168,85,247,0.08) 100%); border:1px solid rgba(168,85,247,0.25); border-radius:var(--radius-lg); margin-bottom:12px;">
-      <span style="font-size:var(--text-xs); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--color-primary); display:flex; align-items:center; gap:6px;">
-        <i data-lucide="layers" style="width:14px; height:14px;"></i> Multi-Account Statement (${accounts.length} Accounts Found):
-      </span>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        ${accounts.map((acc, idx) => `
-          <button class="account-tab-btn" data-idx="${idx}" style="font-size:var(--text-xs); font-weight:600; padding:6px 14px; border-radius:var(--radius-full); cursor:pointer; transition:all 0.2s ease; ${idx === currentSelectedAccountIndex ? 'background:linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color:white; border:none; box-shadow:0 2px 8px rgba(99,102,241,0.4);' : 'background:rgba(255,255,255,0.05); color:var(--color-text-secondary); border:1px solid var(--color-border);'}">
-            ${acc.bank_name || 'Account ' + (idx + 1)} (${acc.masked_account_number || '••••' + (acc.account_number || '').slice(-4)})
-          </button>
-        `).join('')}
+    <div style="background:linear-gradient(135deg, rgba(30, 27, 75, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%); border:1px solid rgba(99, 102, 241, 0.35); border-radius:var(--radius-xl); padding:16px 20px; margin-bottom:16px; box-shadow:0 8px 32px rgba(0, 0, 0, 0.3);">
+      <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:rgba(99, 102, 241, 0.2); color:#818cf8;">
+            <i data-lucide="layers" style="width:16px; height:16px;"></i>
+          </span>
+          <div>
+            <div style="font-size:var(--text-sm); font-weight:700; color:white; letter-spacing:0.02em;">
+              Multi-Account Statement Detected (${accounts.length} Bank Accounts Found in 1 PDF)
+            </div>
+            <div style="font-size:11px; color:var(--color-text-tertiary);">
+              Each account has independent transactions, summaries, and mathematical balance reconciliation. Click an account below to view:
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:12px;">
+        ${accounts.map((acc, idx) => {
+          const isSelected = idx === currentSelectedAccountIndex;
+          const accKey = acc.masked_account_number || acc.account_number || acc.bank_name || "default";
+          const val = (result.account_validations && result.account_validations[accKey]) || {};
+          const isRec = val.is_reconciled ?? true;
+
+          return `
+            <div class="account-tab-btn" data-idx="${idx}" style="cursor:pointer; border-radius:var(--radius-lg); padding:14px 18px; transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1); ${isSelected ? 'background:linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(168,85,247,0.2) 100%); border:2px solid #818cf8; box-shadow:0 4px 20px rgba(99,102,241,0.3);' : 'background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); hover:border-white/20;'}">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                <div>
+                  <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:${isSelected ? '#c7d2fe' : 'var(--color-text-tertiary)'};">Account ${idx + 1}</div>
+                  <div style="font-size:var(--text-base); font-weight:700; color:white; margin-top:2px;">${acc.bank_name || 'Bank Account'}</div>
+                  <div style="font-size:11px; font-family:monospace; color:${isSelected ? '#a5b4fc' : 'var(--color-text-secondary)'};">${acc.masked_account_number || acc.account_number || '•••• ••••'}</div>
+                </div>
+                <span style="font-size:10px; font-weight:700; padding:4px 10px; border-radius:var(--radius-full); ${isRec ? 'background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3);' : 'background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3);'}">
+                  ${isRec ? '✓ Reconciled (₹0.00)' : 'Discrepancy'}
+                </span>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); font-size:11px;">
+                <div>
+                  <span style="color:var(--color-text-tertiary);">Opening:</span>
+                  <span style="color:white; font-weight:600; margin-left:4px;">${formatCurrency(acc.opening_balance || 0)}</span>
+                </div>
+                <div>
+                  <span style="color:var(--color-text-tertiary);">Closing:</span>
+                  <span style="color:white; font-weight:600; margin-left:4px;">${formatCurrency(acc.closing_balance || 0)}</span>
+                </div>
+                <div>
+                  <span style="color:#34d399;">Credits:</span>
+                  <span style="color:white; font-weight:600; margin-left:4px;">${formatCurrency(acc.total_credits_reported || val.total_credits || 0)}</span>
+                </div>
+                <div>
+                  <span style="color:#f87171;">Debits:</span>
+                  <span style="color:white; font-weight:600; margin-left:4px;">${formatCurrency(acc.total_debits_reported || val.total_debits || 0)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
     </div>
   `;
